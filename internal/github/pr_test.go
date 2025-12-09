@@ -290,7 +290,9 @@ func TestGetPRBranch_WithMockServer(t *testing.T) {
 			}`
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(response))
+			if _, err := w.Write([]byte(response)); err != nil {
+				t.Errorf("Failed to write response: %v", err)
+			}
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -479,7 +481,11 @@ func TestGetRemoteOwnerRepo_ErrorHandling(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Chdir(origDir)
+		defer func() {
+			if err := os.Chdir(origDir); err != nil {
+				t.Errorf("Failed to change back to original directory: %v", err)
+			}
+		}()
 
 		if err := os.Chdir(tempDir); err != nil {
 			t.Fatal(err)
@@ -557,6 +563,7 @@ func TestParsePRIdentifier_EdgeCases(t *testing.T) {
 			}
 
 			_, _, _, err := parsePRIdentifier(tt.identifier, "")
+			_ = err // Explicitly ignore for edge case testing
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parsePRIdentifier() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -580,7 +587,7 @@ func TestNewGitHubClient_ContextAndOAuth(t *testing.T) {
 
 	// Verify client can be used (basic structure test)
 	ctx := context.Background()
-	_, resp, err := client.Users.Get(ctx, "")
+	_, resp, _ := client.Users.Get(ctx, "")
 	// We expect an authentication error with our fake token, but the client should be properly structured
 	if resp == nil {
 		t.Error("Expected response object even with auth error")
