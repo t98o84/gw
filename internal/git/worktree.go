@@ -114,6 +114,10 @@ func (m *Manager) List() ([]Worktree, error) {
 		worktrees = append(worktrees, current)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to parse worktree list: %w", err)
+	}
+
 	// Mark the main worktree
 	if len(worktrees) > 0 {
 		worktrees[0].IsMain = true
@@ -228,7 +232,10 @@ func RemoteBranchExists(branch string) (bool, error) {
 // FetchBranch fetches a branch from origin
 func (m *Manager) FetchBranch(branch string) error {
 	_, err := m.executor.Execute("git", "fetch", "origin", branch+":"+branch)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to fetch branch %s: %w", branch, err)
+	}
+	return nil
 }
 
 // FetchBranch is a package-level wrapper for backward compatibility

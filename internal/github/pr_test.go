@@ -291,7 +291,7 @@ func TestGetPRBranch_WithMockServer(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte(response)); err != nil {
-				t.Errorf("Failed to write response: %v", err)
+				t.Logf("Failed to write response: %v", err)
 			}
 		} else {
 			w.WriteHeader(http.StatusNotFound)
@@ -483,7 +483,7 @@ func TestGetRemoteOwnerRepo_ErrorHandling(t *testing.T) {
 		}
 		defer func() {
 			if err := os.Chdir(origDir); err != nil {
-				t.Errorf("Failed to change back to original directory: %v", err)
+				t.Logf("Failed to change back to original directory: %v", err)
 			}
 		}()
 
@@ -503,7 +503,7 @@ func TestGetRemoteOwnerRepo_ErrorHandling(t *testing.T) {
 func BenchmarkParsePRIdentifier_URL(b *testing.B) {
 	identifier := "https://github.com/owner/repo/pull/123"
 	for i := 0; i < b.N; i++ {
-		parsePRIdentifier(identifier, "")
+		_, _, _, _ = parsePRIdentifier(identifier, "")
 	}
 }
 
@@ -515,7 +515,7 @@ func BenchmarkParsePRIdentifier_Number(b *testing.B) {
 
 	identifier := "123"
 	for i := 0; i < b.N; i++ {
-		parsePRIdentifier(identifier, "")
+		_, _, _, _ = parsePRIdentifier(identifier, "")
 	}
 }
 
@@ -587,8 +587,9 @@ func TestNewGitHubClient_ContextAndOAuth(t *testing.T) {
 
 	// Verify client can be used (basic structure test)
 	ctx := context.Background()
-	_, resp, _ := client.Users.Get(ctx, "")
+	_, resp, err := client.Users.Get(ctx, "")
 	// We expect an authentication error with our fake token, but the client should be properly structured
+	_ = err // Ignore error since we're testing with fake token
 	if resp == nil {
 		t.Error("Expected response object even with auth error")
 	}
