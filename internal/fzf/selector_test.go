@@ -191,8 +191,9 @@ func TestExecuteFzf_ExitCodes(t *testing.T) {
 	if selector.IsAvailable() {
 		output, err := selector.executeFzf([]string{"--height=1"}, "")
 		// Should handle gracefully (return empty or error)
-		if err != nil && !contains(err.Error(), "fzf execution failed") {
-			// Some systems might not have fzf, that's ok
+		if err != nil {
+			containsFailed := contains(err.Error(), "fzf execution failed")
+			_ = containsFailed // Some systems might not have fzf, that's ok
 		}
 		_ = output // Used to avoid unused variable
 	}

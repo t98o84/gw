@@ -10,7 +10,6 @@ import (
 
 // addOptions contains options for worktree creation
 type addOptions struct {
-	branch       string
 	createBranch bool
 	prIdentifier string
 	selector     fzf.Selector
