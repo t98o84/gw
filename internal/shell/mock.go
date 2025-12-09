@@ -7,6 +7,9 @@ type MockExecutor struct {
 	LookPathFunc         func(name string) (string, error)
 }
 
+// Compile-time check that MockExecutor implements Executor
+var _ Executor = (*MockExecutor)(nil)
+
 func (m *MockExecutor) Execute(name string, args ...string) ([]byte, error) {
 	if m.ExecuteFunc != nil {
 		return m.ExecuteFunc(name, args...)

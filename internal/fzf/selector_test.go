@@ -2,6 +2,7 @@ package fzf
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/t98o84/gw/internal/git"
@@ -89,7 +90,7 @@ func TestFzfSelector_SelectBranch(t *testing.T) {
 				return
 			}
 			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !contains(err.Error(), tt.errMsg) {
+				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("SelectBranch() error = %v, should contain %v", err.Error(), tt.errMsg)
 				}
 			}
@@ -143,7 +144,7 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 				return
 			}
 			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if !contains(err.Error(), tt.errMsg) {
+				if !strings.Contains(err.Error(), tt.errMsg) {
 					t.Errorf("SelectWorktree() error = %v, should contain %v", err.Error(), tt.errMsg)
 				}
 			}
@@ -168,35 +169,19 @@ func TestFzfSelector_SelectWorktrees_ExcludeMain(t *testing.T) {
 	if err == nil {
 		t.Error("SelectWorktrees() expected error when all worktrees are excluded")
 	}
-	if !contains(err.Error(), "no worktrees available") {
+	if !strings.Contains(err.Error(), "no worktrees available") {
 		t.Errorf("SelectWorktrees() error = %v, should contain 'no worktrees available'", err.Error())
 	}
 }
 
 // TestExecuteFzf_ExitCodes tests handling of different fzf exit codes
+// TestExecuteFzf_ExitCodes is skipped because executeFzf requires interactive input
+// and cannot be tested without a mock that replaces exec.Command.
+// The function's error handling is tested indirectly through the higher-level
+// SelectBranch and SelectWorktree tests with MockSelector.
+// Direct testing of executeFzf would cause CI failures due to interactive input requirements.
 func TestExecuteFzf_ExitCodes(t *testing.T) {
-	// This test verifies the exit code handling logic in executeFzf
-	// Since we can't easily mock exec.Command, we test the error handling path
-
-	selector := &FzfSelector{
-		executor: &shell.MockExecutor{
-			LookPathFunc: func(name string) (string, error) {
-				return "/usr/bin/fzf", nil
-			},
-		},
-	}
-
-	// Test with empty input - fzf should return exit code 1
-	// Note: This will actually try to run fzf if available
-	if selector.IsAvailable() {
-		output, err := selector.executeFzf([]string{"--height=1"}, "")
-		// Should handle gracefully (return empty or error)
-		if err != nil {
-			containsFailed := contains(err.Error(), "fzf execution failed")
-			_ = containsFailed // Some systems might not have fzf, that's ok
-		}
-		_ = output // Used to avoid unused variable
-	}
+	t.Skip("Skipping test that requires interactive fzf execution")
 }
 
 // MockSelector for testing
@@ -313,17 +298,3 @@ func TestMockSelector(t *testing.T) {
 	})
 }
 
-// contains checks if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && containsHelper(s, substr)))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}

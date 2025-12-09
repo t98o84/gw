@@ -83,7 +83,7 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	}
 
 	// Ensure branch exists or can be created
-	fromPR := addPRIdentifier != ""
+	fromPR := opts.prIdentifier != ""
 	if err := ensureBranchExists(branch, addCreateBranch, fromPR); err != nil {
 		return err
 	}
