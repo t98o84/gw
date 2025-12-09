@@ -70,14 +70,14 @@ func getRemoteOwnerRepo() (string, string, error) {
 
 	url := strings.TrimSpace(string(out))
 
-	// Parse SSH format: git@github.com:owner/repo.git
-	sshRegex := regexp.MustCompile(`git@github\.com:([^/]+)/([^/]+?)(?:\.git)?$`)
+	// Parse SSH format: git@github.com:owner/repo.git or custom.github.com:owner/repo.git
+	sshRegex := regexp.MustCompile(`(?:git@)?(?:[^:]+\.)?github\.com:([^/]+)/([^/]+?)(?:\.git)?$`)
 	if matches := sshRegex.FindStringSubmatch(url); matches != nil {
 		return matches[1], matches[2], nil
 	}
 
 	// Parse HTTPS format: https://github.com/owner/repo.git
-	httpsRegex := regexp.MustCompile(`https://github\.com/([^/]+)/([^/]+?)(?:\.git)?$`)
+	httpsRegex := regexp.MustCompile(`https://(?:[^/]+\.)?github\.com/([^/]+)/([^/]+?)(?:\.git)?$`)
 	if matches := httpsRegex.FindStringSubmatch(url); matches != nil {
 		return matches[1], matches[2], nil
 	}

@@ -4,6 +4,9 @@ gw
 
 # Test coverage
 coverage.txt
+coverage*.html
+*.coverprofile
+coverage.out
 
 # IDE
 .idea/
