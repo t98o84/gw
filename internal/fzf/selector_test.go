@@ -297,4 +297,3 @@ func TestMockSelector(t *testing.T) {
 		}
 	})
 }
-
