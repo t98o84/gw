@@ -1,0 +1,499 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>git: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/t98o84/gw/internal/git/naming.go (91.7%)</option>
+				
+				<option value="file1">github.com/t98o84/gw/internal/git/worktree.go (87.9%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package git
+
+import (
+        "path/filepath"
+        "strings"
+)
+
+// BranchToSuffix converts a branch name to a directory suffix
+// e.g., "feature/hoge" -&gt; "feature-hoge"
+func BranchToSuffix(branch string) string <span class="cov8" title="1">{
+        // Replace / with -
+        suffix := strings.ReplaceAll(branch, "/", "-")
+        // Replace any other problematic characters
+        suffix = strings.ReplaceAll(suffix, "\\", "-")
+        suffix = strings.ReplaceAll(suffix, ":", "-")
+        return suffix
+}</span>
+
+// WorktreePath generates the worktree directory path
+// e.g., for repo "ex-repo" and branch "feature/hoge" -&gt; "../ex-repo-feature-hoge"
+func (m *Manager) WorktreePath(repoName, branch string) (string, error) <span class="cov8" title="1">{
+        repoRoot, err := m.GetRepoRoot()
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov8" title="1">suffix := BranchToSuffix(branch)
+        dirName := repoName + "-" + suffix
+        return filepath.Join(filepath.Dir(repoRoot), dirName), nil</span>
+}
+
+// WorktreePath is a package-level wrapper for backward compatibility
+func WorktreePath(repoName, branch string) (string, error) <span class="cov0" title="0">{
+        return defaultManager.WorktreePath(repoName, branch)
+}</span>
+
+// WorktreeDirName generates just the directory name for a worktree
+func WorktreeDirName(repoName, branch string) string <span class="cov8" title="1">{
+        suffix := BranchToSuffix(branch)
+        return repoName + "-" + suffix
+}</span>
+
+// ParseWorktreeIdentifier parses various forms of worktree identifier
+// and returns the matching worktree if found
+// Supported formats:
+//   - branch name: "feature/hoge"
+//   - suffix: "feature-hoge"
+//   - full dir name: "ex-repo-feature-hoge"
+//   - full path: "/path/to/ex-repo-feature-hoge"
+func ParseWorktreeIdentifier(identifier string, repoName string) string <span class="cov8" title="1">{
+        // If it's already a full path, return basename
+        if filepath.IsAbs(identifier) </span><span class="cov8" title="1">{
+                return filepath.Base(identifier)
+        }</span>
+
+        // If it starts with repo name, it's already a full dir name
+        <span class="cov8" title="1">if strings.HasPrefix(identifier, repoName+"-") </span><span class="cov8" title="1">{
+                return identifier
+        }</span>
+
+        // Convert branch format to suffix format
+        <span class="cov8" title="1">suffix := BranchToSuffix(identifier)
+
+        // Return full dir name
+        return repoName + "-" + suffix</span>
+}
+
+// FindWorktree finds a worktree by various identifier formats
+func (m *Manager) FindWorktree(identifier string) (*Worktree, error) <span class="cov8" title="1">{
+        repoName, err := m.GetRepoName()
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">worktrees, err := m.List()
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        // Normalize the identifier
+        <span class="cov8" title="1">targetDirName := ParseWorktreeIdentifier(identifier, repoName)
+
+        for _, wt := range worktrees </span><span class="cov8" title="1">{
+                dirName := filepath.Base(wt.Path)
+                // Match by directory name
+                if dirName == targetDirName </span><span class="cov8" title="1">{
+                        return &amp;wt, nil
+                }</span>
+                // Also try matching by branch name directly
+                <span class="cov8" title="1">if wt.Branch == identifier </span><span class="cov8" title="1">{
+                        return &amp;wt, nil
+                }</span>
+                // Match by suffix (without repo name prefix)
+                <span class="cov8" title="1">if dirName == identifier </span><span class="cov0" title="0">{
+                        return &amp;wt, nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil, nil</span>
+}
+
+// FindWorktree is a package-level wrapper for backward compatibility
+func FindWorktree(identifier string) (*Worktree, error) <span class="cov0" title="0">{
+        return defaultManager.FindWorktree(identifier)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package git
+
+import (
+        "bufio"
+        "bytes"
+        "fmt"
+        "path/filepath"
+        "strings"
+
+        "github.com/t98o84/gw/internal/shell"
+)
+
+// Worktree represents a git worktree
+type Worktree struct {
+        Path   string
+        Branch string
+        Commit string
+        IsMain bool
+}
+
+// Manager manages git operations with dependency injection
+type Manager struct {
+        executor shell.Executor
+}
+
+// NewManager creates a new Manager with the given executor
+func NewManager(executor shell.Executor) *Manager <span class="cov8" title="1">{
+        return &amp;Manager{executor: executor}
+}</span>
+
+// defaultManager is used for backward compatibility
+var defaultManager = NewManager(shell.NewRealExecutor())
+
+// GetRepoRoot returns the root directory of the git repository
+func (m *Manager) GetRepoRoot() (string, error) <span class="cov8" title="1">{
+        out, err := m.executor.Execute("git", "rev-parse", "--show-toplevel")
+        if err != nil </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("not a git repository: %w", err)
+        }</span>
+        <span class="cov8" title="1">return strings.TrimSpace(string(out)), nil</span>
+}
+
+// GetRepoRoot is a package-level wrapper for backward compatibility
+func GetRepoRoot() (string, error) <span class="cov0" title="0">{
+        return defaultManager.GetRepoRoot()
+}</span>
+
+// GetRepoName returns the name of the repository (directory name)
+func (m *Manager) GetRepoName() (string, error) <span class="cov8" title="1">{
+        root, err := m.GetRepoRoot()
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">return filepath.Base(root), nil</span>
+}
+
+// GetRepoName is a package-level wrapper for backward compatibility
+func GetRepoName() (string, error) <span class="cov0" title="0">{
+        return defaultManager.GetRepoName()
+}</span>
+
+// GetMainWorktreePath returns the path to the main (bare) worktree
+func (m *Manager) GetMainWorktreePath() (string, error) <span class="cov8" title="1">{
+        out, err := m.executor.Execute("git", "rev-parse", "--git-common-dir")
+        if err != nil </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("failed to get git common dir: %w", err)
+        }</span>
+        <span class="cov8" title="1">gitDir := strings.TrimSpace(string(out))
+
+        // If it's a bare repo or main worktree, git-common-dir returns .git or the repo path
+        // We need to get the parent of .git
+        if filepath.Base(gitDir) == ".git" </span><span class="cov8" title="1">{
+                return filepath.Dir(gitDir), nil
+        }</span>
+
+        // For worktrees, git-common-dir returns the path to the main repo's .git
+        <span class="cov8" title="1">return filepath.Dir(gitDir), nil</span>
+}
+
+// GetMainWorktreePath is a package-level wrapper for backward compatibility
+func GetMainWorktreePath() (string, error) <span class="cov0" title="0">{
+        return defaultManager.GetMainWorktreePath()
+}</span>
+
+// List returns all worktrees for the current repository
+func (m *Manager) List() ([]Worktree, error) <span class="cov8" title="1">{
+        out, err := m.executor.Execute("git", "worktree", "list", "--porcelain")
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("failed to list worktrees: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">var worktrees []Worktree
+        var current Worktree
+
+        scanner := bufio.NewScanner(bytes.NewReader(out))
+        for scanner.Scan() </span><span class="cov8" title="1">{
+                line := scanner.Text()
+                switch </span>{
+                case strings.HasPrefix(line, "worktree "):<span class="cov8" title="1">
+                        current.Path = strings.TrimPrefix(line, "worktree ")</span>
+                case strings.HasPrefix(line, "HEAD "):<span class="cov8" title="1">
+                        current.Commit = strings.TrimPrefix(line, "HEAD ")</span>
+                case strings.HasPrefix(line, "branch "):<span class="cov8" title="1">
+                        current.Branch = strings.TrimPrefix(line, "branch refs/heads/")</span>
+                case line == "":<span class="cov8" title="1">
+                        if current.Path != "" </span><span class="cov8" title="1">{
+                                worktrees = append(worktrees, current)
+                                current = Worktree{}
+                        }</span>
+                }
+        }
+        // Add the last worktree if exists
+        <span class="cov8" title="1">if current.Path != "" </span><span class="cov0" title="0">{
+                worktrees = append(worktrees, current)
+        }</span>
+
+        // Mark the main worktree
+        <span class="cov8" title="1">if len(worktrees) &gt; 0 </span><span class="cov8" title="1">{
+                worktrees[0].IsMain = true
+        }</span>
+
+        <span class="cov8" title="1">return worktrees, nil</span>
+}
+
+// List is a package-level wrapper for backward compatibility
+func List() ([]Worktree, error) <span class="cov0" title="0">{
+        return defaultManager.List()
+}</span>
+
+// Add creates a new worktree
+func (m *Manager) Add(path string, branch string, createBranch bool) error <span class="cov8" title="1">{
+        args := []string{"worktree", "add"}
+        if createBranch </span><span class="cov8" title="1">{
+                args = append(args, "-b", branch)
+        }</span>
+        <span class="cov8" title="1">args = append(args, path)
+        if !createBranch </span><span class="cov8" title="1">{
+                args = append(args, branch)
+        }</span>
+
+        <span class="cov8" title="1">_, err := m.executor.Execute("git", args...)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("failed to add worktree: %w", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Add is a package-level wrapper for backward compatibility
+func Add(path string, branch string, createBranch bool) error <span class="cov0" title="0">{
+        return defaultManager.Add(path, branch, createBranch)
+}</span>
+
+// Remove removes a worktree
+func (m *Manager) Remove(path string, force bool) error <span class="cov8" title="1">{
+        args := []string{"worktree", "remove"}
+        if force </span><span class="cov8" title="1">{
+                args = append(args, "--force")
+        }</span>
+        <span class="cov8" title="1">args = append(args, path)
+
+        _, err := m.executor.Execute("git", args...)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("failed to remove worktree: %w", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Remove is a package-level wrapper for backward compatibility
+func Remove(path string, force bool) error <span class="cov0" title="0">{
+        return defaultManager.Remove(path, force)
+}</span>
+
+// Exists checks if a worktree exists for the given path or branch
+func (m *Manager) Exists(pathOrBranch string) (*Worktree, error) <span class="cov8" title="1">{
+        worktrees, err := m.List()
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">for _, wt := range worktrees </span><span class="cov8" title="1">{
+                if wt.Path == pathOrBranch || wt.Branch == pathOrBranch || filepath.Base(wt.Path) == pathOrBranch </span><span class="cov8" title="1">{
+                        return &amp;wt, nil
+                }</span>
+        }
+        <span class="cov8" title="1">return nil, nil</span>
+}
+
+// Exists is a package-level wrapper for backward compatibility
+func Exists(pathOrBranch string) (*Worktree, error) <span class="cov0" title="0">{
+        return defaultManager.Exists(pathOrBranch)
+}</span>
+
+// BranchExists checks if a branch exists
+func (m *Manager) BranchExists(branch string) (bool, error) <span class="cov8" title="1">{
+        _, err := m.executor.Execute("git", "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+        if err != nil </span><span class="cov8" title="1">{
+                // Check if error has ExitCode method (both *exec.ExitError and our test mock)
+                type exitCoder interface {
+                        ExitCode() int
+                }
+                if exitErr, ok := err.(exitCoder); ok &amp;&amp; exitErr.ExitCode() == 1 </span><span class="cov8" title="1">{
+                        return false, nil
+                }</span>
+                <span class="cov8" title="1">return false, err</span>
+        }
+        <span class="cov8" title="1">return true, nil</span>
+}
+
+// BranchExists is a package-level wrapper for backward compatibility
+func BranchExists(branch string) (bool, error) <span class="cov0" title="0">{
+        return defaultManager.BranchExists(branch)
+}</span>
+
+// RemoteBranchExists checks if a remote branch exists
+func (m *Manager) RemoteBranchExists(branch string) (bool, error) <span class="cov8" title="1">{
+        out, err := m.executor.Execute("git", "ls-remote", "--heads", "origin", branch)
+        if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return len(out) &gt; 0, nil</span>
+}
+
+// RemoteBranchExists is a package-level wrapper for backward compatibility
+func RemoteBranchExists(branch string) (bool, error) <span class="cov0" title="0">{
+        return defaultManager.RemoteBranchExists(branch)
+}</span>
+
+// FetchBranch fetches a branch from origin
+func (m *Manager) FetchBranch(branch string) error <span class="cov8" title="1">{
+        _, err := m.executor.Execute("git", "fetch", "origin", branch+":"+branch)
+        return err
+}</span>
+
+// FetchBranch is a package-level wrapper for backward compatibility
+func FetchBranch(branch string) error <span class="cov0" title="0">{
+        return defaultManager.FetchBranch(branch)
+}</span>
+
+// ListBranches returns all local and remote branches
+func (m *Manager) ListBranches() ([]string, error) <span class="cov8" title="1">{
+        // Get local branches
+        localOut, err := m.executor.Execute("git", "branch", "--format=%(refname:short)")
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("failed to list local branches: %w", err)
+        }</span>
+
+        // Get remote branches
+        <span class="cov8" title="1">remoteOut, err := m.executor.Execute("git", "branch", "-r", "--format=%(refname:short)")
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("failed to list remote branches: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">branchSet := make(map[string]bool)
+        var branches []string
+
+        // Add local branches
+        for _, line := range strings.Split(strings.TrimSpace(string(localOut)), "\n") </span><span class="cov8" title="1">{
+                if line != "" &amp;&amp; !branchSet[line] </span><span class="cov8" title="1">{
+                        branchSet[line] = true
+                        branches = append(branches, line)
+                }</span>
+        }
+
+        // Add remote branches (strip origin/ prefix)
+        <span class="cov8" title="1">for _, line := range strings.Split(strings.TrimSpace(string(remoteOut)), "\n") </span><span class="cov8" title="1">{
+                if line == "" </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                // Skip HEAD pointer
+                <span class="cov8" title="1">if strings.Contains(line, "HEAD") </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+                // Strip origin/ prefix
+                <span class="cov8" title="1">branch := strings.TrimPrefix(line, "origin/")
+                if !branchSet[branch] </span><span class="cov8" title="1">{
+                        branchSet[branch] = true
+                        branches = append(branches, branch)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return branches, nil</span>
+}
+
+// ListBranches is a package-level wrapper for backward compatibility
+func ListBranches() ([]string, error) <span class="cov0" title="0">{
+        return defaultManager.ListBranches()
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

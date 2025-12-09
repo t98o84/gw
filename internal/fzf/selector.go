@@ -26,14 +26,20 @@ type Selector interface {
 	IsAvailable() bool
 }
 
+// fzfExecutor is a function type for executing fzf commands
+type fzfExecutor func(args []string, input string) (string, error)
+
 // FzfSelector implements Selector using fzf
 type FzfSelector struct {
-	executor shell.Executor
+	executor    shell.Executor
+	fzfExecutor fzfExecutor
 }
 
 // NewSelector creates a new FzfSelector
 func NewSelector(executor shell.Executor) Selector {
-	return &FzfSelector{executor: executor}
+	s := &FzfSelector{executor: executor}
+	s.fzfExecutor = s.defaultFzfExecutor
+	return s
 }
 
 // IsAvailable checks if fzf is installed
@@ -57,7 +63,7 @@ func (s *FzfSelector) SelectBranch(branches []string) (string, error) {
 	input := strings.Join(branches, "\n")
 
 	// Execute fzf
-	output, err := s.executeFzf(args, input)
+	output, err := s.fzfExecutor(args, input)
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +124,7 @@ func (s *FzfSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool
 	input := strings.Join(items, "\n")
 
 	// Execute fzf
-	output, err := s.executeFzf(args, input)
+	output, err := s.fzfExecutor(args, input)
 	if err != nil {
 		return nil, err
 	}
@@ -142,9 +148,14 @@ func (s *FzfSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool
 	return selected, nil
 }
 
+// defaultFzfExecutor is the default implementation that uses exec.Command
+func (s *FzfSelector) defaultFzfExecutor(args []string, input string) (string, error) {
+	return executeFzf(args, input)
+}
+
 // executeFzf executes fzf with given arguments and input
 // Returns the selected output or empty string if cancelled
-func (s *FzfSelector) executeFzf(args []string, input string) (string, error) {
+func executeFzf(args []string, input string) (string, error) {
 	// Create command
 	cmd := exec.Command("fzf", args...)
 	cmd.Stdin = strings.NewReader(input)

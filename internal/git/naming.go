@@ -18,8 +18,8 @@ func BranchToSuffix(branch string) string {
 
 // WorktreePath generates the worktree directory path
 // e.g., for repo "ex-repo" and branch "feature/hoge" -> "../ex-repo-feature-hoge"
-func WorktreePath(repoName, branch string) (string, error) {
-	repoRoot, err := GetRepoRoot()
+func (m *Manager) WorktreePath(repoName, branch string) (string, error) {
+	repoRoot, err := m.GetRepoRoot()
 	if err != nil {
 		return "", err
 	}
@@ -27,6 +27,11 @@ func WorktreePath(repoName, branch string) (string, error) {
 	suffix := BranchToSuffix(branch)
 	dirName := repoName + "-" + suffix
 	return filepath.Join(filepath.Dir(repoRoot), dirName), nil
+}
+
+// WorktreePath is a package-level wrapper for backward compatibility
+func WorktreePath(repoName, branch string) (string, error) {
+	return defaultManager.WorktreePath(repoName, branch)
 }
 
 // WorktreeDirName generates just the directory name for a worktree
@@ -61,13 +66,13 @@ func ParseWorktreeIdentifier(identifier string, repoName string) string {
 }
 
 // FindWorktree finds a worktree by various identifier formats
-func FindWorktree(identifier string) (*Worktree, error) {
-	repoName, err := GetRepoName()
+func (m *Manager) FindWorktree(identifier string) (*Worktree, error) {
+	repoName, err := m.GetRepoName()
 	if err != nil {
 		return nil, err
 	}
 
-	worktrees, err := List()
+	worktrees, err := m.List()
 	if err != nil {
 		return nil, err
 	}
@@ -92,4 +97,9 @@ func FindWorktree(identifier string) (*Worktree, error) {
 	}
 
 	return nil, nil
+}
+
+// FindWorktree is a package-level wrapper for backward compatibility
+func FindWorktree(identifier string) (*Worktree, error) {
+	return defaultManager.FindWorktree(identifier)
 }
