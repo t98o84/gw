@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 	"github.com/t98o84/gw/internal/shell"
 )
@@ -51,7 +52,7 @@ func (s *FzfSelector) IsAvailable() bool {
 // SelectBranch shows an interactive branch selector using fzf
 func (s *FzfSelector) SelectBranch(branches []string) (string, error) {
 	if !s.IsAvailable() {
-		return "", fmt.Errorf("fzf is not installed. Please install fzf for interactive selection, or specify a branch name")
+		return "", errors.NewFzfNotInstalledError(nil)
 	}
 
 	if len(branches) == 0 {
@@ -86,7 +87,7 @@ func (s *FzfSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool)
 // SelectWorktrees shows an interactive worktree selector with multi-select support
 func (s *FzfSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
 	if !s.IsAvailable() {
-		return nil, fmt.Errorf("fzf is not installed. Please install fzf for interactive selection, or specify a worktree name")
+		return nil, errors.NewFzfNotInstalledError(nil)
 	}
 
 	if len(worktrees) == 0 {

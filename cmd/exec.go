@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 )
 
@@ -75,7 +76,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			os.Exit(exitErr.ExitCode())
 		}
-		return fmt.Errorf("failed to execute command: %w", err)
+		return errors.NewCommandExecutionError(command[0], command[1:], err)
 	}
 
 	return nil

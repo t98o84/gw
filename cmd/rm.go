@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 )
 
@@ -56,10 +57,10 @@ func runRm(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("failed to find worktree: %w", err)
 			}
 			if wt == nil {
-				return fmt.Errorf("worktree not found: %s", identifier)
+				return errors.NewWorktreeNotFoundError(identifier, nil)
 			}
 			if wt.IsMain {
-				return fmt.Errorf("cannot remove the main worktree: %s", identifier)
+				return errors.NewInvalidInputError(identifier, "cannot remove the main worktree", nil)
 			}
 			worktrees = append(worktrees, wt)
 		}

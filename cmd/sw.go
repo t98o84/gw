@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 )
 
-var swPrintPath bool
+var swConfig = NewConfig()
 
 var swCmd = &cobra.Command{
 	Use:     "sw [name]",
@@ -29,7 +30,7 @@ Examples:
 }
 
 func init() {
-	swCmd.Flags().BoolVar(&swPrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
+	swCmd.Flags().BoolVar(&swConfig.SwPrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
 	rootCmd.AddCommand(swCmd)
 }
 
@@ -55,11 +56,11 @@ func runSw(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to find worktree: %w", err)
 		}
 		if wt == nil {
-			return fmt.Errorf("worktree not found: %s", identifier)
+			return errors.NewWorktreeNotFoundError(identifier, nil)
 		}
 	}
 
-	if swPrintPath {
+	if swConfig.SwPrintPath {
 		// Just print the path for shell wrapper to use
 		fmt.Println(wt.Path)
 		return nil
