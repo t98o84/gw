@@ -224,6 +224,33 @@ func NewFzfNotInstalledError(err error) *FzfNotInstalledError {
 	return &FzfNotInstalledError{Err: err}
 }
 
+// NotInWorktreeError represents an error when the current directory is not in a worktree
+type NotInWorktreeError struct {
+	Path string
+	Err  error
+}
+
+func (e *NotInWorktreeError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("not in a worktree: %s: %v", e.Path, e.Err)
+	}
+	return fmt.Sprintf("not in a worktree: %s", e.Path)
+}
+
+func (e *NotInWorktreeError) Unwrap() error {
+	return e.Err
+}
+
+func (e *NotInWorktreeError) Is(target error) bool {
+	_, ok := target.(*NotInWorktreeError)
+	return ok
+}
+
+// NewNotInWorktreeError creates a new NotInWorktreeError
+func NewNotInWorktreeError(path string, err error) *NotInWorktreeError {
+	return &NotInWorktreeError{Path: path, Err: err}
+}
+
 // Helper functions to check error types
 
 // IsBranchNotFoundError checks if an error is a BranchNotFoundError
@@ -264,4 +291,9 @@ func IsNotAGitRepoError(err error) bool {
 // IsFzfNotInstalledError checks if an error is a FzfNotInstalledError
 func IsFzfNotInstalledError(err error) bool {
 	return errors.Is(err, &FzfNotInstalledError{})
+}
+
+// IsNotInWorktreeError checks if an error is a NotInWorktreeError
+func IsNotInWorktreeError(err error) bool {
+	return errors.Is(err, &NotInWorktreeError{})
 }

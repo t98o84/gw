@@ -76,7 +76,7 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("editor") {
 		editorFlagPtr = &flagEditor
 	}
-	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr)
+	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil)
 
 	// Validate config
 	if err := mergedConfig.Validate(); err != nil {
