@@ -18,6 +18,7 @@ func setupMocks() {
 	mockFetchBranch = nil
 	mockWorktreePath = nil
 	mockAdd = nil
+	mockOpenInEditor = nil
 }
 
 // resetMocks is called after each test
@@ -666,6 +667,7 @@ func TestCreateWorktree(t *testing.T) {
 		repoName     string
 		branch       string
 		createBranch bool
+		openEditor   string
 		setupMock    func()
 		wantErr      bool
 		errContains  string
@@ -675,6 +677,7 @@ func TestCreateWorktree(t *testing.T) {
 			repoName:     "test-repo",
 			branch:       "feature/test",
 			createBranch: false,
+			openEditor:   "",
 			setupMock: func() {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
@@ -689,10 +692,55 @@ func TestCreateWorktree(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:         "successful worktree creation with editor",
+			repoName:     "test-repo",
+			branch:       "feature/test",
+			createBranch: false,
+			openEditor:   "code",
+			setupMock: func() {
+				mockWorktreePath = func(repoName, branch string) (string, error) {
+					return "/path/to/test-repo-feature-test", nil
+				}
+				mockAdd = func(path string, branch string, createBranch bool) error {
+					if path == "/path/to/test-repo-feature-test" && branch == "feature/test" {
+						return nil
+					}
+					return errors.New("unexpected parameters")
+				}
+				mockOpenInEditor = func(editor, path string) error {
+					if editor == "code" && path == "/path/to/test-repo-feature-test" {
+						return nil
+					}
+					return errors.New("unexpected parameters")
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:         "worktree creation succeeds even if editor fails",
+			repoName:     "test-repo",
+			branch:       "feature/test",
+			createBranch: false,
+			openEditor:   "invalid-editor",
+			setupMock: func() {
+				mockWorktreePath = func(repoName, branch string) (string, error) {
+					return "/path/to/test-repo-feature-test", nil
+				}
+				mockAdd = func(path string, branch string, createBranch bool) error {
+					return nil
+				}
+				mockOpenInEditor = func(editor, path string) error {
+					return errors.New("editor not found")
+				}
+			},
+			wantErr: false, // Should not fail even if editor fails
+		},
+		{
 			name:         "worktree path generation error",
 			repoName:     "test-repo",
 			branch:       "feature/test",
 			createBranch: false,
+			openEditor:   "",
 			setupMock: func() {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "", errors.New("failed to get repo root")
@@ -706,6 +754,7 @@ func TestCreateWorktree(t *testing.T) {
 			repoName:     "test-repo",
 			branch:       "feature/test",
 			createBranch: false,
+			openEditor:   "",
 			setupMock: func() {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
@@ -722,6 +771,7 @@ func TestCreateWorktree(t *testing.T) {
 			repoName:     "test-repo",
 			branch:       "new-feature",
 			createBranch: true,
+			openEditor:   "",
 			setupMock: func() {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-new-feature", nil
@@ -740,6 +790,7 @@ func TestCreateWorktree(t *testing.T) {
 			repoName:     "my-repo",
 			branch:       "feature/fix-bug#123",
 			createBranch: false,
+			openEditor:   "",
 			setupMock: func() {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/my-repo-feature-fix-bug#123", nil
@@ -758,7 +809,7 @@ func TestCreateWorktree(t *testing.T) {
 			defer resetMocks()
 			tt.setupMock()
 
-			err := createWorktree(tt.repoName, tt.branch, tt.createBranch)
+			err := createWorktree(tt.repoName, tt.branch, tt.createBranch, tt.openEditor)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createWorktree() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -766,6 +817,76 @@ func TestCreateWorktree(t *testing.T) {
 			if tt.wantErr && err != nil && tt.errContains != "" {
 				if !contains(err.Error(), tt.errContains) {
 					t.Errorf("createWorktree() error = %v, should contain %v", err.Error(), tt.errContains)
+				}
+			}
+		})
+	}
+}
+
+// TestOpenInEditor tests the openInEditor function
+func TestOpenInEditor(t *testing.T) {
+	tests := []struct {
+		name        string
+		editor      string
+		path        string
+		setupMock   func()
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:   "successful editor open with mock",
+			editor: "code",
+			path:   "/path/to/worktree",
+			setupMock: func() {
+				mockOpenInEditor = func(editor, path string) error {
+					if editor == "code" && path == "/path/to/worktree" {
+						return nil
+					}
+					return errors.New("unexpected parameters")
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:   "editor not found",
+			editor: "nonexistent-editor",
+			path:   "/path/to/worktree",
+			setupMock: func() {
+				mockOpenInEditor = func(editor, path string) error {
+					return errors.New("editor command 'nonexistent-editor' not found in PATH")
+				}
+			},
+			wantErr:     true,
+			errContains: "not found",
+		},
+		{
+			name:   "editor start failed",
+			editor: "vim",
+			path:   "/invalid/path",
+			setupMock: func() {
+				mockOpenInEditor = func(editor, path string) error {
+					return errors.New("failed to start editor 'vim': permission denied")
+				}
+			},
+			wantErr:     true,
+			errContains: "failed to start",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setupMocks()
+			defer resetMocks()
+			tt.setupMock()
+
+			err := openInEditor(tt.editor, tt.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("openInEditor() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errContains != "" {
+				if !contains(err.Error(), tt.errContains) {
+					t.Errorf("openInEditor() error = %v, should contain %v", err.Error(), tt.errContains)
 				}
 			}
 		})

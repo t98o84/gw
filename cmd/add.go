@@ -39,6 +39,7 @@ Examples:
 func init() {
 	addCmd.Flags().BoolVarP(&addConfig.AddCreateBranch, "branch", "b", false, "Create a new branch")
 	addCmd.Flags().StringVar(&addConfig.AddPRIdentifier, "pr", "", "PR number or URL to create worktree for")
+	addCmd.Flags().StringVarP(&addConfig.AddOpenEditor, "open", "o", "", "Open worktree in specified editor after creation (e.g., code, vim)")
 	rootCmd.AddCommand(addCmd)
 }
 
@@ -91,5 +92,5 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	}
 
 	// Create the worktree
-	return createWorktree(repoName, branch, cfg.AddCreateBranch)
+	return createWorktree(repoName, branch, cfg.AddCreateBranch, cfg.AddOpenEditor)
 }
