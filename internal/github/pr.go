@@ -116,7 +116,11 @@ func newGitHubClientWithExecutor(executor shell.Executor) (*github.Client, error
 	}
 
 	if token == "" {
-		return nil, fmt.Errorf("GitHub token not found. Set GITHUB_TOKEN or GH_TOKEN environment variable, or login with 'gh auth login'")
+		return nil, errors.NewGitHubAPIError(
+			"token retrieval",
+			0,
+			fmt.Errorf("GitHub token not found. Set GITHUB_TOKEN or GH_TOKEN environment variable, or login with 'gh auth login'"),
+		)
 	}
 
 	ctx := context.Background()

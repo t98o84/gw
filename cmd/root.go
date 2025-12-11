@@ -20,6 +20,8 @@ with intuitive naming conventions and fzf integration.`,
 	Version: version,
 }
 
+// Execute runs the root command and handles any errors.
+// This is the main entry point for the CLI application.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		handleError(err)
@@ -27,6 +29,8 @@ func Execute() {
 	}
 }
 
+// handleError provides user-friendly error messages based on the error type.
+// It prints the error and helpful hints to stderr.
 func handleError(err error) {
 	// Handle specific error types with user-friendly messages
 	switch {

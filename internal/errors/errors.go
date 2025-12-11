@@ -144,44 +144,17 @@ func NewInvalidInputError(input, reason string, err error) *InvalidInputError {
 	return &InvalidInputError{Input: input, Reason: reason, Err: err}
 }
 
-// Helper functions to check error types
-
-// IsBranchNotFoundError checks if an error is a BranchNotFoundError
-func IsBranchNotFoundError(err error) bool {
-	return errors.Is(err, &BranchNotFoundError{})
-}
-
-// IsWorktreeExistsError checks if an error is a WorktreeExistsError
-func IsWorktreeExistsError(err error) bool {
-	return errors.Is(err, &WorktreeExistsError{})
-}
-
-// IsGitHubAPIError checks if an error is a GitHubAPIError
-func IsGitHubAPIError(err error) bool {
-	return errors.Is(err, &GitHubAPIError{})
-}
-
-// IsCommandExecutionError checks if an error is a CommandExecutionError
-func IsCommandExecutionError(err error) bool {
-	return errors.Is(err, &CommandExecutionError{})
-}
-
-// IsInvalidInputError checks if an error is an InvalidInputError
-func IsInvalidInputError(err error) bool {
-	return errors.Is(err, &InvalidInputError{})
-}
-
 // WorktreeNotFoundError represents an error when a worktree cannot be found
 type WorktreeNotFoundError struct {
-	Path string
-	Err  error
+	Identifier string // Can be a branch name, path suffix, or directory name
+	Err        error
 }
 
 func (e *WorktreeNotFoundError) Error() string {
 	if e.Err != nil {
-		return fmt.Sprintf("worktree not found at %s: %v", e.Path, e.Err)
+		return fmt.Sprintf("worktree not found: %s: %v", e.Identifier, e.Err)
 	}
-	return fmt.Sprintf("worktree not found at %s", e.Path)
+	return fmt.Sprintf("worktree not found: %s", e.Identifier)
 }
 
 func (e *WorktreeNotFoundError) Unwrap() error {
@@ -194,8 +167,8 @@ func (e *WorktreeNotFoundError) Is(target error) bool {
 }
 
 // NewWorktreeNotFoundError creates a new WorktreeNotFoundError
-func NewWorktreeNotFoundError(path string, err error) *WorktreeNotFoundError {
-	return &WorktreeNotFoundError{Path: path, Err: err}
+func NewWorktreeNotFoundError(identifier string, err error) *WorktreeNotFoundError {
+	return &WorktreeNotFoundError{Identifier: identifier, Err: err}
 }
 
 // NotAGitRepoError represents an error when a directory is not a git repository
@@ -249,6 +222,33 @@ func (e *FzfNotInstalledError) Is(target error) bool {
 // NewFzfNotInstalledError creates a new FzfNotInstalledError
 func NewFzfNotInstalledError(err error) *FzfNotInstalledError {
 	return &FzfNotInstalledError{Err: err}
+}
+
+// Helper functions to check error types
+
+// IsBranchNotFoundError checks if an error is a BranchNotFoundError
+func IsBranchNotFoundError(err error) bool {
+	return errors.Is(err, &BranchNotFoundError{})
+}
+
+// IsWorktreeExistsError checks if an error is a WorktreeExistsError
+func IsWorktreeExistsError(err error) bool {
+	return errors.Is(err, &WorktreeExistsError{})
+}
+
+// IsGitHubAPIError checks if an error is a GitHubAPIError
+func IsGitHubAPIError(err error) bool {
+	return errors.Is(err, &GitHubAPIError{})
+}
+
+// IsCommandExecutionError checks if an error is a CommandExecutionError
+func IsCommandExecutionError(err error) bool {
+	return errors.Is(err, &CommandExecutionError{})
+}
+
+// IsInvalidInputError checks if an error is an InvalidInputError
+func IsInvalidInputError(err error) bool {
+	return errors.Is(err, &InvalidInputError{})
 }
 
 // IsWorktreeNotFoundError checks if an error is a WorktreeNotFoundError

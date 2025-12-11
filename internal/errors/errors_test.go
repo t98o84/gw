@@ -335,8 +335,8 @@ func TestErrorFieldAccess(t *testing.T) {
 
 func TestWorktreeNotFoundError(t *testing.T) {
 	t.Run("error message without wrapped error", func(t *testing.T) {
-		err := NewWorktreeNotFoundError("/path/to/worktree", nil)
-		expected := "worktree not found at /path/to/worktree"
+		err := NewWorktreeNotFoundError("feature/test", nil)
+		expected := "worktree not found: feature/test"
 		if err.Error() != expected {
 			t.Errorf("Expected %q, got %q", expected, err.Error())
 		}
@@ -344,8 +344,8 @@ func TestWorktreeNotFoundError(t *testing.T) {
 
 	t.Run("error message with wrapped error", func(t *testing.T) {
 		wrappedErr := errors.New("directory does not exist")
-		err := NewWorktreeNotFoundError("/path/to/worktree", wrappedErr)
-		expected := "worktree not found at /path/to/worktree: directory does not exist"
+		err := NewWorktreeNotFoundError("feature-test", wrappedErr)
+		expected := "worktree not found: feature-test: directory does not exist"
 		if err.Error() != expected {
 			t.Errorf("Expected %q, got %q", expected, err.Error())
 		}

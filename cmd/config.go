@@ -23,7 +23,11 @@ func NewConfig() *Config {
 	}
 }
 
-// Validate checks if the configuration is valid
+// Validate checks if the configuration is valid.
+// It returns an error if:
+//   - Both --branch and --pr flags are specified for the add command
+//
+// Returns nil if the configuration is valid.
 func (c *Config) Validate() error {
 	// Validate Add command configuration
 	if c.AddCreateBranch && c.AddPRIdentifier != "" {

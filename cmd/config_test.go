@@ -10,13 +10,13 @@ func TestNewConfig(t *testing.T) {
 	t.Run("creates config with default values", func(t *testing.T) {
 		cfg := NewConfig()
 
-		if cfg.AddCreateBranch != false {
+		if cfg.AddCreateBranch {
 			t.Errorf("Expected AddCreateBranch to be false, got %v", cfg.AddCreateBranch)
 		}
 		if cfg.AddPRIdentifier != "" {
 			t.Errorf("Expected AddPRIdentifier to be empty, got %q", cfg.AddPRIdentifier)
 		}
-		if cfg.SwPrintPath != false {
+		if cfg.SwPrintPath {
 			t.Errorf("Expected SwPrintPath to be false, got %v", cfg.SwPrintPath)
 		}
 	})
