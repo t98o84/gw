@@ -207,10 +207,11 @@ func openInEditor(editor, path string) error {
 
 	fmt.Printf("✓ Opening in %s: %s\n", editor, path)
 
-	// プロセスをデタッチ（親プロセスの終了を待たない）
-	go func() {
-		_ = cmd.Wait()
-	}()
+	// Release the process so it's not a child of this process
+	if err := cmd.Process.Release(); err != nil {
+		// Non-critical error, just log it
+		fmt.Printf("⚠ Warning: Failed to release editor process: %v\n", err)
+	}
 
 	return nil
 }
