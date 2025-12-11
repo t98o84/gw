@@ -53,8 +53,15 @@ func TestAddCmd_OpenFlag(t *testing.T) {
 	if flag == nil {
 		t.Fatal("Expected 'open' flag to be defined")
 	}
+}
 
-	if flag.Shorthand != "o" {
-		t.Errorf("open flag shorthand = %q, want %q", flag.Shorthand, "o")
+func TestAddCmd_EditorFlag(t *testing.T) {
+	flag := addCmd.Flags().Lookup("editor")
+	if flag == nil {
+		t.Fatal("Expected 'editor' flag to be defined")
+	}
+
+	if flag.Shorthand != "e" {
+		t.Errorf("editor flag shorthand = %q, want %q", flag.Shorthand, "e")
 	}
 }
