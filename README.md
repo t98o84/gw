@@ -116,8 +116,10 @@ gw add feature/hoge
 gw add -b feature/new
 
 # PR のブランチからワークツリーを作成
-gw add -pr 123
-gw add -pr https://github.com/owner/repo/pull/123
+gw add --pr 123
+gw add -p 123
+gw add --pr https://github.com/owner/repo/pull/123
+gw add -p https://github.com/owner/repo/pull/123
 
 # ワークツリー作成後にエディターで開く（コマンドラインフラグ）
 gw add --open --editor code feature/hoge
@@ -173,7 +175,7 @@ gw sw
 |---------|-----------|------|
 | `gw add <branch>` | `gw a` | ワークツリー作成 |
 | `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
-| `gw add --pr <url\|number>` | `gw a --pr` | PR ブランチのワークツリー作成 |
+| `gw add --pr <url\|number>` | `gw a --pr`, `gw a -p` | PR ブランチのワークツリー作成 |
 | `gw add --open` | `gw a --open` | ワークツリー作成後にエディターで開く |
 | `gw add --editor <cmd>` | `gw a -e` | 使用するエディターコマンドを指定 |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
