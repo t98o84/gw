@@ -77,6 +77,9 @@ func (m *Manager) FindWorktree(identifier string) (*Worktree, error) {
 		return nil, err
 	}
 
+	// Trim whitespace from identifier
+	identifier = strings.TrimSpace(identifier)
+
 	// If identifier is an absolute path, try to match by full path first
 	if filepath.IsAbs(identifier) {
 		cleanIdentifier := filepath.Clean(identifier)
