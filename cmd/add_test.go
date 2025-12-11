@@ -47,3 +47,14 @@ func TestAddCmd_PRFlag(t *testing.T) {
 		t.Fatal("Expected 'pr' flag to be defined")
 	}
 }
+
+func TestAddCmd_OpenFlag(t *testing.T) {
+	flag := addCmd.Flags().Lookup("open")
+	if flag == nil {
+		t.Fatal("Expected 'open' flag to be defined")
+	}
+
+	if flag.Shorthand != "o" {
+		t.Errorf("open flag shorthand = %q, want %q", flag.Shorthand, "o")
+	}
+}

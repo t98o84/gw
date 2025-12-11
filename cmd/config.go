@@ -9,6 +9,7 @@ type Config struct {
 	// Add command flags
 	AddCreateBranch bool
 	AddPRIdentifier string
+	AddOpenEditor   string // エディターコマンド名
 
 	// Sw command flags
 	SwPrintPath bool
@@ -19,6 +20,7 @@ func NewConfig() *Config {
 	return &Config{
 		AddCreateBranch: false,
 		AddPRIdentifier: "",
+		AddOpenEditor:   "", // 空文字列 = エディターを開かない
 		SwPrintPath:     false,
 	}
 }

@@ -96,6 +96,14 @@ gw add -b feature/new
 # PR のブランチからワークツリーを作成
 gw add -pr 123
 gw add -pr https://github.com/owner/repo/pull/123
+
+# ワークツリー作成後にエディターで開く
+gw add -o code feature/hoge
+gw add --open vim feature/hoge
+
+# オプションの組み合わせも可能
+gw add -b -o code feature/new
+gw add --pr 123 -o vim
 ```
 
 ### ワークツリー一覧
@@ -140,6 +148,7 @@ gw sw
 | `gw add <branch>` | `gw a` | ワークツリー作成 |
 | `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
 | `gw add -pr <url\|number>` | `gw a -pr` | PR ブランチのワークツリー作成 |
+| `gw add -o <editor> <branch>` | `gw a -o` | ワークツリー作成後にエディターで開く |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
 | `gw rm <name>` | `gw r` | ワークツリー削除 |
 | `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |

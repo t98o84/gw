@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
 
 	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/fzf"
@@ -19,6 +20,7 @@ var (
 	mockFetchBranch        func(branch string) error
 	mockWorktreePath       func(repoName, branch string) (string, error)
 	mockAdd                func(path string, branch string, createBranch bool) error
+	mockOpenInEditor       func(editor, path string) error
 )
 
 // addOptions contains options for worktree creation
@@ -150,7 +152,7 @@ func ensureBranchExists(branch string, createBranch bool, fromPR bool) error {
 }
 
 // createWorktree creates a new worktree for the given branch
-func createWorktree(repoName, branch string, createBranch bool) error {
+func createWorktree(repoName, branch string, createBranch bool, openEditor string) error {
 	var wtPath string
 	var err error
 	if mockWorktreePath != nil {
@@ -173,5 +175,42 @@ func createWorktree(repoName, branch string, createBranch bool) error {
 	}
 
 	fmt.Printf("✓ Worktree created: %s\n", wtPath)
+
+	// エディターで開く処理
+	if openEditor != "" {
+		if err := openInEditor(openEditor, wtPath); err != nil {
+			// エディター起動失敗は警告のみ（ワークツリー作成は成功扱い）
+			fmt.Printf("⚠ Warning: Failed to open editor: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+// openInEditor opens the specified path in the given editor
+func openInEditor(editor, path string) error {
+	if mockOpenInEditor != nil {
+		return mockOpenInEditor(editor, path)
+	}
+
+	// エディターコマンドの存在確認
+	_, err := exec.LookPath(editor)
+	if err != nil {
+		return fmt.Errorf("editor command '%s' not found in PATH", editor)
+	}
+
+	// エディターコマンドの実行（バックグラウンド）
+	cmd := exec.Command(editor, path)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start editor '%s': %w", editor, err)
+	}
+
+	fmt.Printf("✓ Opening in %s: %s\n", editor, path)
+
+	// プロセスをデタッチ（親プロセスの終了を待たない）
+	go func() {
+		_ = cmd.Wait()
+	}()
+
 	return nil
 }
