@@ -1,0 +1,21 @@
+# gw configuration file example
+# Place this file at:
+#   - Linux/macOS: ~/.config/gw/config.yaml (or $XDG_CONFIG_HOME/gw/config.yaml)
+#   - Windows: %APPDATA%\gw\config.yaml
+
+# Add command configuration
+add:
+  # Automatically open worktree in editor after creation
+  # Default: false
+  open: true
+
+# Editor command to use when opening worktrees
+# This is used when add.open is true
+# Examples: code, vim, emacs, subl, atom
+# Default: "" (empty string)
+editor: code
+
+# Note: Command-line flags take precedence over config file values
+# Example:
+#   gw add --open --editor vim feature/test
+#   This will use vim instead of the configured editor

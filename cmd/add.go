@@ -4,12 +4,21 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/config"
 	"github.com/t98o84/gw/internal/fzf"
 	"github.com/t98o84/gw/internal/git"
 	"github.com/t98o84/gw/internal/shell"
 )
 
-var addConfig = NewConfig()
+var (
+	// Global configuration loaded from config file
+	globalConfig *config.Config
+	// Command-line flags
+	flagAddOpen   bool
+	flagEditor    string
+	flagAddBranch bool
+	flagAddPR     string
+)
 
 var addCmd = &cobra.Command{
 	Use:     "add <branch>",
@@ -37,20 +46,40 @@ Examples:
 }
 
 func init() {
-	addCmd.Flags().BoolVarP(&addConfig.AddCreateBranch, "branch", "b", false, "Create a new branch")
-	addCmd.Flags().StringVar(&addConfig.AddPRIdentifier, "pr", "", "PR number or URL to create worktree for")
-	addCmd.Flags().StringVarP(&addConfig.AddOpenEditor, "open", "o", "", "Open worktree in specified editor after creation (e.g., code, vim)")
+	// Load configuration from config file
+	globalConfig = config.LoadOrDefault()
+
+	addCmd.Flags().BoolVarP(&flagAddBranch, "branch", "b", false, "Create a new branch")
+	addCmd.Flags().StringVar(&flagAddPR, "pr", "", "PR number or URL to create worktree for")
+	addCmd.Flags().BoolVar(&flagAddOpen, "open", false, "Open worktree in editor after creation")
+	addCmd.Flags().StringVarP(&flagEditor, "editor", "e", "", "Editor command to use (e.g., code, vim)")
 	rootCmd.AddCommand(addCmd)
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	selector := fzf.NewSelector(shell.NewRealExecutor())
-	return runAddWithSelector(cmd, args, selector, addConfig)
+	return runAddWithSelector(cmd, args, selector)
 }
 
-func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector, cfg *Config) error {
+func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector) error {
+	// Validate flags
+	if flagAddBranch && flagAddPR != "" {
+		return fmt.Errorf("cannot use --branch and --pr together")
+	}
+
+	// Merge config with flags (flags take precedence)
+	var openFlagPtr *bool
+	if cmd.Flags().Changed("open") {
+		openFlagPtr = &flagAddOpen
+	}
+	var editorFlagPtr *string
+	if cmd.Flags().Changed("editor") {
+		editorFlagPtr = &flagEditor
+	}
+	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr)
+
 	// Validate config
-	if err := cfg.Validate(); err != nil {
+	if err := mergedConfig.Validate(); err != nil {
 		return err
 	}
 
@@ -61,8 +90,8 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 
 	// Create options
 	opts := &addOptions{
-		createBranch: cfg.AddCreateBranch,
-		prIdentifier: cfg.AddPRIdentifier,
+		createBranch: flagAddBranch,
+		prIdentifier: flagAddPR,
 		selector:     selector,
 	}
 
@@ -87,10 +116,13 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 
 	// Ensure branch exists or can be created
 	fromPR := opts.prIdentifier != ""
-	if err := ensureBranchExists(branch, cfg.AddCreateBranch, fromPR); err != nil {
+	if err := ensureBranchExists(branch, flagAddBranch, fromPR); err != nil {
 		return err
 	}
 
+	// Get editor command from merged config
+	editorCmd := mergedConfig.GetEditor()
+
 	// Create the worktree
-	return createWorktree(repoName, branch, cfg.AddCreateBranch, cfg.AddOpenEditor)
+	return createWorktree(repoName, branch, flagAddBranch, editorCmd)
 }

@@ -83,6 +83,28 @@ gw init fish | source
 
 ## 使い方
 
+### 設定ファイル
+
+`gw` は YAML 形式の設定ファイルをサポートしています。設定ファイルのパスは以下の通りです：
+
+- **Linux/macOS**: `~/.config/gw/config.yaml` (または `$XDG_CONFIG_HOME/gw/config.yaml`)
+- **Windows**: `%APPDATA%\gw\config.yaml`
+
+#### 設定例
+
+```yaml
+add:
+  open: true  # ワークツリー作成後に自動的にエディターで開く
+editor: code  # 使用するエディターコマンド
+```
+
+#### 設定項目
+
+- `add.open` (boolean): ワークツリー作成後に自動的にエディターで開くかどうか（デフォルト: `false`）
+- `editor` (string): 使用するエディターコマンド（例: `code`, `vim`, `emacs`）
+
+**注意**: コマンドラインフラグは設定ファイルの値より優先されます。
+
 ### ワークツリーの作成
 
 ```bash
@@ -97,13 +119,17 @@ gw add -b feature/new
 gw add -pr 123
 gw add -pr https://github.com/owner/repo/pull/123
 
-# ワークツリー作成後にエディターで開く
-gw add -o code feature/hoge
-gw add --open vim feature/hoge
+# ワークツリー作成後にエディターで開く（コマンドラインフラグ）
+gw add --open --editor code feature/hoge
+gw add --open -e vim feature/hoge
+
+# 設定ファイルで add.open=true と editor=code を設定している場合
+# フラグなしでもエディターが自動的に開く
+gw add feature/hoge
 
 # オプションの組み合わせも可能
-gw add -b -o code feature/new
-gw add --pr 123 -o vim
+gw add -b --open --editor code feature/new
+gw add --pr 123 --open -e vim
 ```
 
 ### ワークツリー一覧
@@ -147,8 +173,9 @@ gw sw
 |---------|-----------|------|
 | `gw add <branch>` | `gw a` | ワークツリー作成 |
 | `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
-| `gw add -pr <url\|number>` | `gw a -pr` | PR ブランチのワークツリー作成 |
-| `gw add -o <editor> <branch>` | `gw a -o` | ワークツリー作成後にエディターで開く |
+| `gw add --pr <url\|number>` | `gw a --pr` | PR ブランチのワークツリー作成 |
+| `gw add --open` | `gw a --open` | ワークツリー作成後にエディターで開く |
+| `gw add --editor <cmd>` | `gw a -e` | 使用するエディターコマンドを指定 |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
 | `gw rm <name>` | `gw r` | ワークツリー削除 |
 | `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |
