@@ -118,9 +118,9 @@ func NewCommandExecutionError(command string, args []string, err error) *Command
 
 // InvalidInputError represents an error when user input is invalid
 type InvalidInputError struct {
-	Input   string
-	Reason  string
-	Err     error
+	Input  string
+	Reason string
+	Err    error
 }
 
 func (e *InvalidInputError) Error() string {

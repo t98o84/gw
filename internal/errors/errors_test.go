@@ -231,7 +231,7 @@ func TestInvalidInputError(t *testing.T) {
 
 func TestErrorTypeDiscrimination(t *testing.T) {
 	t.Run("different error types are distinguishable", func(t *testing.T) {
-			branchErr := NewBranchNotFoundError("main", nil)
+		branchErr := NewBranchNotFoundError("main", nil)
 		worktreeErr := NewWorktreeExistsError("/path", "main", nil)
 		githubErr := NewGitHubAPIError("GetPR", 404, nil)
 		commandErr := NewCommandExecutionError("git", []string{}, nil)
