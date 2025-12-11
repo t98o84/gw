@@ -37,31 +37,27 @@ func runLs(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, wt := range worktrees {
-		var name string
 		if lsPrintPath {
-			name = wt.Path
+			// -p flag specified, output full path only
+			fmt.Println(wt.Path)
 		} else {
-			name = filepath.Base(wt.Path)
-		}
-
-		// Get short commit hash (first 7 characters)
-		shortCommit := wt.Commit
-		if len(shortCommit) > 7 {
-			shortCommit = shortCommit[:7]
-		}
-
-		// Format: name branch commit (main)
-		branch := wt.Branch
-		if branch == "" {
-			branch = "(detached)"
-		}
-
-		if wt.IsMain {
-			fmt.Printf("%s %s %s (main)\n", name, branch, shortCommit)
-		} else {
-			fmt.Printf("%s %s %s\n", name, branch, shortCommit)
+			// -p flag not specified, output detailed information
+			name := filepath.Base(wt.Path)
+			output := fmt.Sprintf("%s\t%s\t%s", name, wt.Branch, shortHash(wt.Commit))
+			if wt.IsMain {
+				output += "\t(main)"
+			}
+			fmt.Println(output)
 		}
 	}
 
 	return nil
+}
+
+// shortHash returns the first 7 characters of a commit hash
+func shortHash(hash string) string {
+	if len(hash) > 7 {
+		return hash[:7]
+	}
+	return hash
 }
