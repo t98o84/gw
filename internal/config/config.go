@@ -2,9 +2,10 @@ package config
 
 // Config represents the application configuration.
 type Config struct {
-	Add    AddConfig    `yaml:"add"`
-	Delete DeleteConfig `yaml:"delete"`
-	Editor string       `yaml:"editor,omitempty"`
+	Add    AddConfig   `yaml:"add"`
+	Close  CloseConfig `yaml:"close"`
+	Rm     RmConfig    `yaml:"rm"`
+	Editor string      `yaml:"editor,omitempty"`
 }
 
 // AddConfig represents the configuration for the add command.
@@ -12,8 +13,13 @@ type AddConfig struct {
 	Open bool `yaml:"open"`
 }
 
-// DeleteConfig represents the configuration for the delete/close command.
-type DeleteConfig struct {
+// CloseConfig represents the configuration for the close command.
+type CloseConfig struct {
+	Force bool `yaml:"force"`
+}
+
+// RmConfig represents the configuration for the rm command.
+type RmConfig struct {
 	Force bool `yaml:"force"`
 }
 
@@ -23,7 +29,10 @@ func NewConfig() *Config {
 		Add: AddConfig{
 			Open: false,
 		},
-		Delete: DeleteConfig{
+		Close: CloseConfig{
+			Force: false,
+		},
+		Rm: RmConfig{
 			Force: false,
 		},
 		Editor: "",
@@ -38,10 +47,11 @@ func (c *Config) Validate() error {
 
 // MergeWithFlags merges the configuration with command-line flags.
 // Flags take precedence over config file values.
-func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, yesFlag *bool) *Config {
+func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool) *Config {
 	merged := &Config{
 		Add:    c.Add,
-		Delete: c.Delete,
+		Close:  c.Close,
+		Rm:     c.Rm,
 		Editor: c.Editor,
 	}
 
@@ -53,8 +63,12 @@ func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, yesFlag *boo
 		merged.Editor = *editorFlag
 	}
 
-	if yesFlag != nil {
-		merged.Delete.Force = *yesFlag
+	if closeYesFlag != nil {
+		merged.Close.Force = *closeYesFlag
+	}
+
+	if rmYesFlag != nil {
+		merged.Rm.Force = *rmYesFlag
 	}
 
 	return merged

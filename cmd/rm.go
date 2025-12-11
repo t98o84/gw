@@ -4,11 +4,14 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/config"
 	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 )
 
-var rmForce bool
+var rmConfig = struct {
+	Force bool
+}{}
 
 var rmCmd = &cobra.Command{
 	Use:     "rm [name...]",
@@ -32,11 +35,22 @@ Examples:
 }
 
 func init() {
-	rmCmd.Flags().BoolVarP(&rmForce, "force", "f", false, "Force removal even if worktree is dirty")
+	rmCmd.Flags().BoolVarP(&rmConfig.Force, "force", "f", false, "Force removal even if worktree is dirty")
+	rmCmd.Flags().BoolVarP(&rmConfig.Force, "yes", "y", false, "Skip confirmation prompt (alias for --force)")
 	rootCmd.AddCommand(rmCmd)
 }
 
 func runRm(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg := config.LoadOrDefault()
+
+	// Merge with command-line flags (flags take precedence)
+	var forceFlagPtr *bool
+	if cmd.Flags().Changed("force") || cmd.Flags().Changed("yes") {
+		forceFlagPtr = &rmConfig.Force
+	}
+	mergedConfig := cfg.MergeWithFlags(nil, nil, nil, forceFlagPtr)
+
 	var worktrees []*git.Worktree
 
 	if len(args) == 0 {
@@ -74,7 +88,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Printf("Removing worktree: %s\n", wt.Path)
-		if err := git.Remove(wt.Path, rmForce); err != nil {
+		if err := git.Remove(wt.Path, mergedConfig.Rm.Force); err != nil {
 			return fmt.Errorf("failed to remove %s: %w", wt.Path, err)
 		}
 		fmt.Printf("✓ Worktree removed: %s\n", wt.Path)

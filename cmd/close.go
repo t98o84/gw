@@ -50,7 +50,7 @@ func runClose(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("yes") {
 		yesFlagPtr = &closeConfig.Yes
 	}
-	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr)
+	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr, nil)
 
 	// Get current directory
 	cwd, err := os.Getwd()
@@ -87,7 +87,7 @@ func runClose(cmd *cobra.Command, args []string) error {
 		// Print the current worktree path on stderr for the shell wrapper to remove
 		fmt.Fprintf(os.Stderr, "%s\n", currentWT.Path)
 		// Print -y flag status on stderr (second line)
-		if mergedConfig.Delete.Force {
+		if mergedConfig.Close.Force {
 			fmt.Fprintf(os.Stderr, "-y\n")
 		} else {
 			fmt.Fprintf(os.Stderr, "\n")
