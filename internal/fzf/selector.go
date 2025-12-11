@@ -18,10 +18,10 @@ type Selector interface {
 	SelectBranch(branches []string) (string, error)
 
 	// SelectWorktree shows worktree selector and returns selected worktree
-	SelectWorktree(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error)
+	SelectWorktree(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error)
 
 	// SelectWorktrees shows worktree selector with multi-select support
-	SelectWorktrees(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
+	SelectWorktrees(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
 
 	// IsAvailable checks if fzf is installed
 	IsAvailable() bool
@@ -73,7 +73,7 @@ func (s *FzfSelector) SelectBranch(branches []string) (string, error) {
 }
 
 // SelectWorktree shows an interactive worktree selector using fzf
-func (s *FzfSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error) {
+func (s *FzfSelector) SelectWorktree(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error) {
 	selected, err := s.SelectWorktrees(worktrees, excludeMain, false)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (s *FzfSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool)
 }
 
 // SelectWorktrees shows an interactive worktree selector with multi-select support
-func (s *FzfSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
+func (s *FzfSelector) SelectWorktrees(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
 	if !s.IsAvailable() {
 		return nil, errors.NewFzfNotInstalledError(nil)
 	}
@@ -97,8 +97,7 @@ func (s *FzfSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool
 	// Build list for fzf
 	var items []string
 	wtMap := make(map[string]*git.Worktree)
-	for i := range worktrees {
-		wt := &worktrees[i]
+	for _, wt := range worktrees {
 		if excludeMain && wt.IsMain {
 			continue
 		}

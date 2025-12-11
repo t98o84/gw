@@ -206,7 +206,7 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 	tests := []struct {
 		name        string
 		selector    *FzfSelector
-		worktrees   []git.Worktree
+		worktrees   []*git.Worktree
 		excludeMain bool
 		wantBranch  string
 		wantErr     bool
@@ -221,8 +221,8 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 					},
 				},
 			},
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
+			worktrees: []*git.Worktree{
+			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			wantErr:     true,
@@ -231,7 +231,7 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 		{
 			name:        "no worktrees",
 			selector:    newTestSelector(nil),
-			worktrees:   []git.Worktree{},
+			worktrees:   []*git.Worktree{},
 			excludeMain: false,
 			wantErr:     true,
 			errMsg:      "no worktrees found",
@@ -242,8 +242,8 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 				// Return the label that would be shown in fzf (with "(main)" suffix)
 				return "repo (main)", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
+			worktrees: []*git.Worktree{
+			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			wantBranch:  "main",
@@ -254,8 +254,8 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 			selector: newTestSelector(func(args []string, input string) (string, error) {
 				return "", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
+			worktrees: []*git.Worktree{
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			wantBranch:  "",
@@ -294,8 +294,8 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 func TestFzfSelector_SelectWorktrees_ExcludeMain(t *testing.T) {
 	selector := newTestSelector(nil)
 
-	worktrees := []git.Worktree{
-		{Path: "/repo", Branch: "main", IsMain: true},
+	worktrees := []*git.Worktree{
+		&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 	}
 
 	// When excluding main and only main exists, should return error
@@ -313,7 +313,7 @@ func TestFzfSelector_SelectWorktrees(t *testing.T) {
 	tests := []struct {
 		name         string
 		selector     *FzfSelector
-		worktrees    []git.Worktree
+		worktrees    []*git.Worktree
 		excludeMain  bool
 		multi        bool
 		mockResponse string
@@ -331,9 +331,9 @@ func TestFzfSelector_SelectWorktrees(t *testing.T) {
 				}
 				return "repo-feature", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
-				{Path: "/repo-feature", Branch: "feature", IsMain: false},
+			worktrees: []*git.Worktree{
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
+				&git.Worktree{Path: "/repo-feature", Branch: "feature", IsMain: false},
 			},
 			excludeMain:  false,
 			multi:        false,
@@ -350,9 +350,9 @@ func TestFzfSelector_SelectWorktrees(t *testing.T) {
 				}
 				return "repo-feature1\nrepo-feature2", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo-feature1", Branch: "feature1", IsMain: false},
-				{Path: "/repo-feature2", Branch: "feature2", IsMain: false},
+			worktrees: []*git.Worktree{
+				&git.Worktree{Path: "/repo-feature1", Branch: "feature1", IsMain: false},
+				&git.Worktree{Path: "/repo-feature2", Branch: "feature2", IsMain: false},
 			},
 			excludeMain:  false,
 			multi:        true,
@@ -369,9 +369,9 @@ func TestFzfSelector_SelectWorktrees(t *testing.T) {
 				}
 				return "repo-feature", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
-				{Path: "/repo-feature", Branch: "feature", IsMain: false},
+			worktrees: []*git.Worktree{
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
+				&git.Worktree{Path: "/repo-feature", Branch: "feature", IsMain: false},
 			},
 			excludeMain:  true,
 			multi:        false,
@@ -384,8 +384,8 @@ func TestFzfSelector_SelectWorktrees(t *testing.T) {
 			selector: newTestSelector(func(args []string, input string) (string, error) {
 				return "", nil
 			}),
-			worktrees: []git.Worktree{
-				{Path: "/repo", Branch: "main", IsMain: true},
+			worktrees: []*git.Worktree{
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			multi:       false,
@@ -508,8 +508,8 @@ func TestExecuteFzf_Integration(t *testing.T) {
 // MockSelector for testing
 type MockSelector struct {
 	SelectBranchFunc    func(branches []string) (string, error)
-	SelectWorktreeFunc  func(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error)
-	SelectWorktreesFunc func(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
+	SelectWorktreeFunc  func(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error)
+	SelectWorktreesFunc func(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
 	IsAvailableFunc     func() bool
 }
 
@@ -523,12 +523,11 @@ func (m *MockSelector) SelectBranch(branches []string) (string, error) {
 	return "", nil
 }
 
-func (m *MockSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error) {
+func (m *MockSelector) SelectWorktree(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error) {
 	if m.SelectWorktreeFunc != nil {
 		return m.SelectWorktreeFunc(worktrees, excludeMain)
 	}
-	for i := range worktrees {
-		wt := &worktrees[i]
+	for _, wt := range worktrees {
 		if !excludeMain || !wt.IsMain {
 			return wt, nil
 		}
@@ -536,13 +535,12 @@ func (m *MockSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool
 	return nil, nil
 }
 
-func (m *MockSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
+func (m *MockSelector) SelectWorktrees(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
 	if m.SelectWorktreesFunc != nil {
 		return m.SelectWorktreesFunc(worktrees, excludeMain, multi)
 	}
 	var selected []*git.Worktree
-	for i := range worktrees {
-		wt := &worktrees[i]
+	for _, wt := range worktrees {
 		if !excludeMain || !wt.IsMain {
 			selected = append(selected, wt)
 			if !multi {
@@ -580,9 +578,9 @@ func TestMockSelector(t *testing.T) {
 		}
 
 		// Test SelectWorktree
-		worktrees := []git.Worktree{
-			{Path: "/repo", Branch: "main", IsMain: true},
-			{Path: "/repo-feature", Branch: "feature", IsMain: false},
+		worktrees := []*git.Worktree{
+			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
+			&git.Worktree{Path: "/repo-feature", Branch: "feature", IsMain: false},
 		}
 		wt, err := mock.SelectWorktree(worktrees, false)
 		if err != nil {
@@ -633,10 +631,10 @@ func TestMockSelector(t *testing.T) {
 	})
 
 	t.Run("multi-select behavior", func(t *testing.T) {
-		worktrees := []git.Worktree{
-			{Path: "/repo-feature1", Branch: "feature1", IsMain: false},
-			{Path: "/repo-feature2", Branch: "feature2", IsMain: false},
-			{Path: "/repo-feature3", Branch: "feature3", IsMain: false},
+		worktrees := []*git.Worktree{
+			&git.Worktree{Path: "/repo-feature1", Branch: "feature1", IsMain: false},
+			&git.Worktree{Path: "/repo-feature2", Branch: "feature2", IsMain: false},
+			&git.Worktree{Path: "/repo-feature3", Branch: "feature3", IsMain: false},
 		}
 
 		mock := &MockSelector{}
@@ -707,8 +705,8 @@ func TestFzfSelector_EdgeCases(t *testing.T) {
 			return "日本語", nil
 		})
 
-		worktrees := []git.Worktree{
-			{Path: "/repo/日本語", Branch: "feature", IsMain: false},
+		worktrees := []*git.Worktree{
+			&git.Worktree{Path: "/repo/日本語", Branch: "feature", IsMain: false},
 		}
 
 		got, err := selector.SelectWorktrees(worktrees, false, false)
@@ -724,14 +722,14 @@ func TestFzfSelector_EdgeCases(t *testing.T) {
 		selector := newTestSelector(nil)
 
 		// Test both empty list and list with only main
-		emptyWorktrees := []git.Worktree{}
+		emptyWorktrees := []*git.Worktree{}
 		_, err := selector.SelectWorktrees(emptyWorktrees, true, false)
 		if err == nil {
 			t.Error("Expected error for empty worktree list")
 		}
 
-		onlyMain := []git.Worktree{
-			{Path: "/repo", Branch: "main", IsMain: true},
+		onlyMain := []*git.Worktree{
+			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 		}
 		_, err = selector.SelectWorktrees(onlyMain, true, false)
 		if err == nil {

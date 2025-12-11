@@ -29,8 +29,8 @@ func resetMocks() {
 // mockSelector for testing
 type mockSelector struct {
 	selectBranchFunc    func(branches []string) (string, error)
-	selectWorktreeFunc  func(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error)
-	selectWorktreesFunc func(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
+	selectWorktreeFunc  func(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error)
+	selectWorktreesFunc func(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error)
 	isAvailableFunc     func() bool
 }
 
@@ -44,12 +44,11 @@ func (m *mockSelector) SelectBranch(branches []string) (string, error) {
 	return "", nil
 }
 
-func (m *mockSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool) (*git.Worktree, error) {
+func (m *mockSelector) SelectWorktree(worktrees []*git.Worktree, excludeMain bool) (*git.Worktree, error) {
 	if m.selectWorktreeFunc != nil {
 		return m.selectWorktreeFunc(worktrees, excludeMain)
 	}
-	for i := range worktrees {
-		wt := &worktrees[i]
+	for _, wt := range worktrees {
 		if !excludeMain || !wt.IsMain {
 			return wt, nil
 		}
@@ -57,13 +56,12 @@ func (m *mockSelector) SelectWorktree(worktrees []git.Worktree, excludeMain bool
 	return nil, nil
 }
 
-func (m *mockSelector) SelectWorktrees(worktrees []git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
+func (m *mockSelector) SelectWorktrees(worktrees []*git.Worktree, excludeMain bool, multi bool) ([]*git.Worktree, error) {
 	if m.selectWorktreesFunc != nil {
 		return m.selectWorktreesFunc(worktrees, excludeMain, multi)
 	}
 	var selected []*git.Worktree
-	for i := range worktrees {
-		wt := &worktrees[i]
+	for _, wt := range worktrees {
 		if !excludeMain || !wt.IsMain {
 			selected = append(selected, wt)
 			if !multi {

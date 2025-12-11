@@ -18,7 +18,12 @@ func selectWorktreeWithSelector(selector fzf.Selector, excludeMain bool) (*git.W
 	if err != nil {
 		return nil, err
 	}
-	return selector.SelectWorktree(worktrees, excludeMain)
+	// Convert []Worktree to []*Worktree
+	worktreePtrs := make([]*git.Worktree, len(worktrees))
+	for i := range worktrees {
+		worktreePtrs[i] = &worktrees[i]
+	}
+	return selector.SelectWorktree(worktreePtrs, excludeMain)
 }
 
 // selectWorktreesWithFzf shows an interactive worktree selector using fzf with multi-select support
@@ -34,5 +39,10 @@ func selectWorktreesWithSelector(selector fzf.Selector, excludeMain bool, multi 
 	if err != nil {
 		return nil, err
 	}
-	return selector.SelectWorktrees(worktrees, excludeMain, multi)
+	// Convert []Worktree to []*Worktree
+	worktreePtrs := make([]*git.Worktree, len(worktrees))
+	for i := range worktrees {
+		worktreePtrs[i] = &worktrees[i]
+	}
+	return selector.SelectWorktrees(worktreePtrs, excludeMain, multi)
 }
