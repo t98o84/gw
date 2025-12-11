@@ -77,6 +77,16 @@ func (m *Manager) FindWorktree(identifier string) (*Worktree, error) {
 		return nil, err
 	}
 
+	// If identifier is an absolute path, try to match by full path first
+	if filepath.IsAbs(identifier) {
+		cleanIdentifier := filepath.Clean(identifier)
+		for _, wt := range worktrees {
+			if filepath.Clean(wt.Path) == cleanIdentifier {
+				return &wt, nil
+			}
+		}
+	}
+
 	// Normalize the identifier
 	targetDirName := ParseWorktreeIdentifier(identifier, repoName)
 
