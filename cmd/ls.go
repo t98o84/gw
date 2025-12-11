@@ -43,7 +43,11 @@ func runLs(cmd *cobra.Command, args []string) error {
 		} else {
 			// -p flag not specified, output detailed information
 			name := filepath.Base(wt.Path)
-			output := fmt.Sprintf("%s\t%s\t%s", name, wt.Branch, shortHash(wt.Commit))
+			branch := wt.Branch
+			if branch == "" {
+				branch = "(detached)"
+			}
+			output := fmt.Sprintf("%s\t%s\t%s", name, branch, shortHash(wt.Commit))
 			if wt.IsMain {
 				output += "\t(main)"
 			}
