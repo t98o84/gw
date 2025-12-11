@@ -46,6 +46,10 @@ func TestAddCmd_PRFlag(t *testing.T) {
 	if flag == nil {
 		t.Fatal("Expected 'pr' flag to be defined")
 	}
+
+	if flag.Shorthand != "p" {
+		t.Errorf("pr flag shorthand = %q, want %q", flag.Shorthand, "p")
+	}
 }
 
 func TestAddCmd_OpenFlag(t *testing.T) {

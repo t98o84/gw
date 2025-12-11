@@ -50,7 +50,7 @@ func init() {
 	globalConfig = config.LoadOrDefault()
 
 	addCmd.Flags().BoolVarP(&flagAddBranch, "branch", "b", false, "Create a new branch")
-	addCmd.Flags().StringVar(&flagAddPR, "pr", "", "PR number or URL to create worktree for")
+	addCmd.Flags().StringVarP(&flagAddPR, "pr", "p", "", "PR number or URL to create worktree for")
 	addCmd.Flags().BoolVar(&flagAddOpen, "open", false, "Open worktree in editor after creation")
 	addCmd.Flags().StringVarP(&flagEditor, "editor", "e", "", "Editor command to use (e.g., code, vim)")
 	rootCmd.AddCommand(addCmd)
