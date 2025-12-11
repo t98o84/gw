@@ -4,18 +4,18 @@ import (
 	"testing"
 )
 
-func TestFnCmd(t *testing.T) {
-	if fnCmd == nil {
-		t.Fatal("fnCmd should not be nil")
+func TestFdCmd(t *testing.T) {
+	if fdCmd == nil {
+		t.Fatal("fdCmd should not be nil")
 	}
 
-	if fnCmd.Use != "fn" {
-		t.Errorf("fnCmd.Use = %q, want %q", fnCmd.Use, "fn")
+	if fdCmd.Use != "fd" {
+		t.Errorf("fdCmd.Use = %q, want %q", fdCmd.Use, "fd")
 	}
 }
 
-func TestFnCmd_Aliases(t *testing.T) {
-	aliases := fnCmd.Aliases
+func TestFdCmd_Aliases(t *testing.T) {
+	aliases := fdCmd.Aliases
 	expected := []string{"f"}
 
 	if len(aliases) != len(expected) {
@@ -30,8 +30,8 @@ func TestFnCmd_Aliases(t *testing.T) {
 	}
 }
 
-func TestFnCmd_PathFlag(t *testing.T) {
-	flag := fnCmd.Flags().Lookup("path")
+func TestFdCmd_PathFlag(t *testing.T) {
+	flag := fdCmd.Flags().Lookup("path")
 	if flag == nil {
 		t.Fatal("Expected 'path' flag to be defined")
 	}

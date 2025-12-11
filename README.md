@@ -182,6 +182,7 @@ gw sw
 | `gw rm <name>` | `gw r` | ワークツリー削除 |
 | `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |
 | `gw sw [name]` | `gw s` | 対象ワークツリーに移動（引数なしで fzf） |
+| `gw fd` | `gw f` | fzf でワークツリー検索 |
 | `gw init <shell>` | `gw i` | シェル初期化スクリプト出力 |
 
 ## 必要なツール
