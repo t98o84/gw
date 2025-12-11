@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/shell"
 )
 
@@ -35,7 +36,7 @@ var defaultManager = NewManager(shell.NewRealExecutor())
 func (m *Manager) GetRepoRoot() (string, error) {
 	out, err := m.executor.Execute("git", "rev-parse", "--show-toplevel")
 	if err != nil {
-		return "", fmt.Errorf("not a git repository: %w", err)
+		return "", errors.NewNotAGitRepoError(".", err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -144,7 +145,7 @@ func (m *Manager) Add(path string, branch string, createBranch bool) error {
 
 	_, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return fmt.Errorf("failed to add worktree: %w", err)
+		return errors.NewCommandExecutionError("git", args, err)
 	}
 	return nil
 }
@@ -164,7 +165,7 @@ func (m *Manager) Remove(path string, force bool) error {
 
 	_, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return fmt.Errorf("failed to remove worktree: %w", err)
+		return errors.NewCommandExecutionError("git", args, err)
 	}
 	return nil
 }
@@ -231,9 +232,10 @@ func RemoteBranchExists(branch string) (bool, error) {
 
 // FetchBranch fetches a branch from origin
 func (m *Manager) FetchBranch(branch string) error {
-	_, err := m.executor.Execute("git", "fetch", "origin", branch+":"+branch)
+	args := []string{"fetch", "origin", branch + ":" + branch}
+	_, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return fmt.Errorf("failed to fetch branch %s: %w", branch, err)
+		return errors.NewCommandExecutionError("git", args, err)
 	}
 	return nil
 }

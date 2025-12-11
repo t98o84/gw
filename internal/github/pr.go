@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v66/github"
+	"github.com/t98o84/gw/internal/errors"
+	"github.com/t98o84/gw/internal/shell"
 	"golang.org/x/oauth2"
 )
 
@@ -26,9 +27,13 @@ func GetPRBranch(prIdentifier string, repoName string) (string, error) {
 	}
 
 	ctx := context.Background()
-	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	pr, resp, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
 	if err != nil {
-		return "", fmt.Errorf("failed to get PR #%d: %w", prNumber, err)
+		status := 0
+		if resp != nil {
+			status = resp.StatusCode
+		}
+		return "", errors.NewGitHubAPIError("GetPR", status, err)
 	}
 
 	return pr.Head.GetRef(), nil
@@ -57,15 +62,19 @@ func parsePRIdentifier(identifier string, defaultRepo string) (int, string, stri
 		return prNum, owner, repo, nil
 	}
 
-	return 0, "", "", fmt.Errorf("invalid PR identifier: %s (use PR number or URL)", identifier)
+	return 0, "", "", errors.NewInvalidInputError(identifier, "invalid PR identifier (use PR number or URL)", nil)
 }
 
 // getRemoteOwnerRepo extracts owner and repo from git remote origin
 func getRemoteOwnerRepo() (string, string, error) {
-	cmd := exec.Command("git", "remote", "get-url", "origin")
-	out, err := cmd.Output()
+	return getRemoteOwnerRepoWithExecutor(shell.NewRealExecutor())
+}
+
+// getRemoteOwnerRepoWithExecutor extracts owner and repo from git remote origin using provided executor
+func getRemoteOwnerRepoWithExecutor(executor shell.Executor) (string, string, error) {
+	out, err := executor.Execute("git", "remote", "get-url", "origin")
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get remote URL: %w", err)
+		return "", "", errors.NewCommandExecutionError("git", []string{"remote", "get-url", "origin"}, err)
 	}
 
 	url := strings.TrimSpace(string(out))
@@ -82,11 +91,16 @@ func getRemoteOwnerRepo() (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", fmt.Errorf("failed to parse remote URL: %s", url)
+	return "", "", errors.NewInvalidInputError(url, "failed to parse remote URL", nil)
 }
 
 // newGitHubClient creates a new GitHub client with authentication
 func newGitHubClient() (*github.Client, error) {
+	return newGitHubClientWithExecutor(shell.NewRealExecutor())
+}
+
+// newGitHubClientWithExecutor creates a new GitHub client with authentication using provided executor
+func newGitHubClientWithExecutor(executor shell.Executor) (*github.Client, error) {
 	// Try to get token from environment
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
@@ -95,15 +109,18 @@ func newGitHubClient() (*github.Client, error) {
 
 	// Try to get token from gh CLI
 	if token == "" {
-		cmd := exec.Command("gh", "auth", "token")
-		out, err := cmd.Output()
+		out, err := executor.Execute("gh", "auth", "token")
 		if err == nil {
 			token = strings.TrimSpace(string(out))
 		}
 	}
 
 	if token == "" {
-		return nil, fmt.Errorf("GitHub token not found. Set GITHUB_TOKEN or GH_TOKEN environment variable, or login with 'gh auth login'")
+		return nil, errors.NewGitHubAPIError(
+			"token retrieval",
+			0,
+			fmt.Errorf("GitHub token not found. Set GITHUB_TOKEN or GH_TOKEN environment variable, or login with 'gh auth login'"),
+		)
 	}
 
 	ctx := context.Background()

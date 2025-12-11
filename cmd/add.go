@@ -9,10 +9,7 @@ import (
 	"github.com/t98o84/gw/internal/shell"
 )
 
-var (
-	addCreateBranch bool
-	addPRIdentifier string
-)
+var addConfig = NewConfig()
 
 var addCmd = &cobra.Command{
 	Use:     "add <branch>",
@@ -40,17 +37,22 @@ Examples:
 }
 
 func init() {
-	addCmd.Flags().BoolVarP(&addCreateBranch, "branch", "b", false, "Create a new branch")
-	addCmd.Flags().StringVar(&addPRIdentifier, "pr", "", "PR number or URL to create worktree for")
+	addCmd.Flags().BoolVarP(&addConfig.AddCreateBranch, "branch", "b", false, "Create a new branch")
+	addCmd.Flags().StringVar(&addConfig.AddPRIdentifier, "pr", "", "PR number or URL to create worktree for")
 	rootCmd.AddCommand(addCmd)
 }
 
 func runAdd(cmd *cobra.Command, args []string) error {
 	selector := fzf.NewSelector(shell.NewRealExecutor())
-	return runAddWithSelector(cmd, args, selector)
+	return runAddWithSelector(cmd, args, selector, addConfig)
 }
 
-func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector) error {
+func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector, cfg *Config) error {
+	// Validate config
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+
 	repoName, err := git.GetRepoName()
 	if err != nil {
 		return fmt.Errorf("failed to get repository name: %w", err)
@@ -58,8 +60,8 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 
 	// Create options
 	opts := &addOptions{
-		createBranch: addCreateBranch,
-		prIdentifier: addPRIdentifier,
+		createBranch: cfg.AddCreateBranch,
+		prIdentifier: cfg.AddPRIdentifier,
 		selector:     selector,
 	}
 
@@ -84,10 +86,10 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 
 	// Ensure branch exists or can be created
 	fromPR := opts.prIdentifier != ""
-	if err := ensureBranchExists(branch, addCreateBranch, fromPR); err != nil {
+	if err := ensureBranchExists(branch, cfg.AddCreateBranch, fromPR); err != nil {
 		return err
 	}
 
 	// Create the worktree
-	return createWorktree(repoName, branch, addCreateBranch)
+	return createWorktree(repoName, branch, cfg.AddCreateBranch)
 }

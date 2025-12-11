@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/fzf"
 	"github.com/t98o84/gw/internal/git"
 	"github.com/t98o84/gw/internal/github"
@@ -138,10 +139,10 @@ func ensureBranchExists(branch string, createBranch bool, fromPR bool) error {
 				err = git.FetchBranch(branch)
 			}
 			if err != nil {
-				return fmt.Errorf("failed to fetch branch: %w", err)
+				return err
 			}
 		} else if !createBranch {
-			return fmt.Errorf("branch %s does not exist (use -b to create)", branch)
+			return errors.NewBranchNotFoundError(branch, nil)
 		}
 	}
 

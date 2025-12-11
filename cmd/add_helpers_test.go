@@ -575,7 +575,7 @@ func TestEnsureBranchExists(t *testing.T) {
 				}
 			},
 			wantErr:     true,
-			errContains: "failed to fetch branch",
+			errContains: "fetch failed",
 		},
 		{
 			name:         "branch does not exist - no create flag",
@@ -591,7 +591,7 @@ func TestEnsureBranchExists(t *testing.T) {
 				}
 			},
 			wantErr:     true,
-			errContains: "does not exist (use -b to create)",
+			errContains: "not found",
 		},
 		{
 			name:         "branch does not exist - with create flag from PR",
