@@ -37,6 +37,23 @@ func TestCloseCmd_PrintPathFlag(t *testing.T) {
 	}
 }
 
+func TestCloseCmd_YesFlag(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("yes")
+	if flag == nil {
+		t.Fatal("Expected 'yes' flag to be defined")
+	}
+}
+
+func TestCloseCmd_YesFlagShorthand(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("yes")
+	if flag == nil {
+		t.Fatal("Expected 'yes' flag to be defined")
+	}
+	if flag.Shorthand != "y" {
+		t.Errorf("Expected shorthand 'y', got '%s'", flag.Shorthand)
+	}
+}
+
 func TestFindCurrentWorktree(t *testing.T) {
 	tests := []struct {
 		name        string

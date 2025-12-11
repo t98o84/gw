@@ -7,11 +7,15 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/t98o84/gw/internal/config"
 	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/git"
 )
 
-var closeConfig = NewConfig()
+var closeConfig = struct {
+	PrintPath bool
+	Yes       bool
+}{}
 
 var closeCmd = &cobra.Command{
 	Use:     "close",
@@ -32,11 +36,22 @@ Examples:
 }
 
 func init() {
-	closeCmd.Flags().BoolVar(&closeConfig.ClosePrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
+	closeCmd.Flags().BoolVar(&closeConfig.PrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
+	closeCmd.Flags().BoolVarP(&closeConfig.Yes, "yes", "y", false, "Automatically confirm worktree deletion (used by shell wrapper)")
 	rootCmd.AddCommand(closeCmd)
 }
 
 func runClose(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg := config.LoadOrDefault()
+
+	// Merge with command-line flags (flags take precedence)
+	var yesFlagPtr *bool
+	if cmd.Flags().Changed("yes") {
+		yesFlagPtr = &closeConfig.Yes
+	}
+	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr)
+
 	// Get current directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -66,11 +81,17 @@ func runClose(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get main worktree path: %w", err)
 	}
 
-	if closeConfig.ClosePrintPath {
-		// Print the main worktree path for shell wrapper to use
+	if closeConfig.PrintPath {
+		// Print the main worktree path for shell wrapper to use (stdout)
 		fmt.Println(mainPath)
-		// Also print the current worktree path on stderr for the shell wrapper to remove
+		// Print the current worktree path on stderr for the shell wrapper to remove
 		fmt.Fprintf(os.Stderr, "%s\n", currentWT.Path)
+		// Print -y flag status on stderr (second line)
+		if mergedConfig.Delete.Force {
+			fmt.Fprintf(os.Stderr, "-y\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "\n")
+		}
 		return nil
 	}
 

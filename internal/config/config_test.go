@@ -10,6 +10,9 @@ func TestNewConfig(t *testing.T) {
 	if cfg.Add.Open != false {
 		t.Errorf("NewConfig() Add.Open = %v, want false", cfg.Add.Open)
 	}
+	if cfg.Delete.Force != false {
+		t.Errorf("NewConfig() Delete.Force = %v, want false", cfg.Delete.Force)
+	}
 	if cfg.Editor != "" {
 		t.Errorf("NewConfig() Editor = %v, want empty string", cfg.Editor)
 	}
@@ -28,8 +31,10 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 		config     *Config
 		openFlag   *bool
 		editorFlag *string
+		yesFlag    *bool
 		wantOpen   bool
 		wantEditor string
+		wantForce  bool
 	}{
 		{
 			name: "no flags provided",
@@ -37,12 +42,17 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 				Add: AddConfig{
 					Open: false,
 				},
+				Delete: DeleteConfig{
+					Force: false,
+				},
 				Editor: "vim",
 			},
 			openFlag:   nil,
 			editorFlag: nil,
+			yesFlag:    nil,
 			wantOpen:   false,
 			wantEditor: "vim",
+			wantForce:  false,
 		},
 		{
 			name: "open flag overrides config",
@@ -50,12 +60,17 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 				Add: AddConfig{
 					Open: false,
 				},
+				Delete: DeleteConfig{
+					Force: false,
+				},
 				Editor: "vim",
 			},
 			openFlag:   boolPtr(true),
 			editorFlag: nil,
+			yesFlag:    nil,
 			wantOpen:   true,
 			wantEditor: "vim",
+			wantForce:  false,
 		},
 		{
 			name: "editor flag overrides config",
@@ -63,25 +78,53 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 				Add: AddConfig{
 					Open: true,
 				},
+				Delete: DeleteConfig{
+					Force: false,
+				},
 				Editor: "vim",
 			},
 			openFlag:   nil,
 			editorFlag: stringPtr("code"),
+			yesFlag:    nil,
 			wantOpen:   true,
 			wantEditor: "code",
+			wantForce:  false,
 		},
 		{
-			name: "both flags override config",
+			name: "yes flag overrides config",
 			config: &Config{
 				Add: AddConfig{
 					Open: false,
+				},
+				Delete: DeleteConfig{
+					Force: false,
+				},
+				Editor: "vim",
+			},
+			openFlag:   nil,
+			editorFlag: nil,
+			yesFlag:    boolPtr(true),
+			wantOpen:   false,
+			wantEditor: "vim",
+			wantForce:  true,
+		},
+		{
+			name: "all flags override config",
+			config: &Config{
+				Add: AddConfig{
+					Open: false,
+				},
+				Delete: DeleteConfig{
+					Force: false,
 				},
 				Editor: "vim",
 			},
 			openFlag:   boolPtr(true),
 			editorFlag: stringPtr("emacs"),
+			yesFlag:    boolPtr(true),
 			wantOpen:   true,
 			wantEditor: "emacs",
+			wantForce:  true,
 		},
 		{
 			name: "empty editor flag doesn't override",
@@ -89,23 +132,31 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 				Add: AddConfig{
 					Open: true,
 				},
+				Delete: DeleteConfig{
+					Force: true,
+				},
 				Editor: "vim",
 			},
 			openFlag:   nil,
 			editorFlag: stringPtr(""),
+			yesFlag:    nil,
 			wantOpen:   true,
 			wantEditor: "vim",
+			wantForce:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			merged := tt.config.MergeWithFlags(tt.openFlag, tt.editorFlag)
+			merged := tt.config.MergeWithFlags(tt.openFlag, tt.editorFlag, tt.yesFlag)
 			if merged.Add.Open != tt.wantOpen {
 				t.Errorf("MergeWithFlags() Add.Open = %v, want %v", merged.Add.Open, tt.wantOpen)
 			}
 			if merged.Editor != tt.wantEditor {
 				t.Errorf("MergeWithFlags() Editor = %v, want %v", merged.Editor, tt.wantEditor)
+			}
+			if merged.Delete.Force != tt.wantForce {
+				t.Errorf("MergeWithFlags() Delete.Force = %v, want %v", merged.Delete.Force, tt.wantForce)
 			}
 		})
 	}

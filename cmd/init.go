@@ -51,13 +51,21 @@ gw() {
       cd "$target"
     fi
   elif [ "$1" = "close" ] || [ "$1" = "c" ]; then
-    local target worktree_to_remove
-    target="$(command gw close --print-path 2>&1 1>&3 3>&-)"
-    worktree_to_remove="$target"
-    exec 3>&1
-    target="$(command gw close --print-path 2>/dev/null)"
-    if [ -n "$target" ] && [ -n "$worktree_to_remove" ]; then
-      cd "$target" && command gw rm "$worktree_to_remove"
+    # Capture stderr (worktree path and -y flag status) and stdout (main path)
+    local stderr_output main_path worktree_to_remove yes_flag
+    stderr_output="$(command gw close --print-path 2>&1 1>/dev/null)"
+    main_path="$(command gw close --print-path 2>/dev/null)"
+    
+    # Parse stderr output: line 1 = worktree path, line 2 = -y flag
+    worktree_to_remove="$(echo "$stderr_output" | sed -n '1p')"
+    yes_flag="$(echo "$stderr_output" | sed -n '2p')"
+    
+    if [ -n "$main_path" ] && [ -n "$worktree_to_remove" ]; then
+      if [ "$yes_flag" = "-y" ]; then
+        cd "$main_path" && command gw rm -y "$worktree_to_remove"
+      else
+        cd "$main_path" && command gw rm "$worktree_to_remove"
+      fi
     fi
   else
     command gw "$@"
@@ -73,10 +81,20 @@ function gw
       cd $target
     end
   else if test "$argv[1]" = "close" -o "$argv[1]" = "c"
-    set -l worktree_to_remove (command gw close --print-path 2>&1 >/dev/null)
-    set -l target (command gw close --print-path 2>/dev/null)
-    if test -n "$target" -a -n "$worktree_to_remove"
-      cd $target; and command gw rm $worktree_to_remove
+    # Capture stderr (worktree path and -y flag) and stdout (main path)
+    set -l stderr_output (command gw close --print-path 2>&1 >/dev/null)
+    set -l main_path (command gw close --print-path 2>/dev/null)
+    
+    # Parse stderr output: line 1 = worktree path, line 2 = -y flag
+    set -l worktree_to_remove (echo "$stderr_output" | sed -n '1p')
+    set -l yes_flag (echo "$stderr_output" | sed -n '2p')
+    
+    if test -n "$main_path" -a -n "$worktree_to_remove"
+      if test "$yes_flag" = "-y"
+        cd $main_path; and command gw rm -y $worktree_to_remove
+      else
+        cd $main_path; and command gw rm $worktree_to_remove
+      end
     end
   else
     command gw $argv

@@ -9,6 +9,13 @@ add:
   # Default: false
   open: true
 
+# Delete/Close command configuration
+delete:
+  # Automatically confirm worktree deletion without prompting
+  # When true, 'gw close' will pass -y flag to 'gw rm' automatically
+  # Default: false
+  force: true
+
 # Editor command to use when opening worktrees
 # This is used when add.open is true
 # Examples: code, vim, emacs, subl, atom
@@ -19,3 +26,4 @@ editor: code
 # Example:
 #   gw add --open --editor vim feature/test
 #   This will use vim instead of the configured editor
+#   gw close -y  # This will override delete.force setting
