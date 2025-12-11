@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/t98o84/gw/internal/git"
 )
 
 func TestCloseCmd(t *testing.T) {
@@ -56,26 +58,18 @@ func TestCloseCmd_YesFlagShorthand(t *testing.T) {
 
 func TestFindCurrentWorktree(t *testing.T) {
 	tests := []struct {
-		name        string
-		currentPath string
-		worktrees   []struct {
-			path   string
-			branch string
-			isMain bool
-		}
+		name          string
+		currentPath   string
+		worktrees     []git.Worktree
 		expectedFound bool
 		expectedMain  bool
 	}{
 		{
 			name:        "exact match",
 			currentPath: "/repo/worktrees/feature",
-			worktrees: []struct {
-				path   string
-				branch string
-				isMain bool
-			}{
-				{path: "/repo", branch: "main", isMain: true},
-				{path: "/repo/worktrees/feature", branch: "feature", isMain: false},
+			worktrees: []git.Worktree{
+				{Path: "/repo", Branch: "main", IsMain: true},
+				{Path: "/repo/worktrees/feature", Branch: "feature", IsMain: false},
 			},
 			expectedFound: true,
 			expectedMain:  false,
@@ -83,13 +77,9 @@ func TestFindCurrentWorktree(t *testing.T) {
 		{
 			name:        "subdirectory match",
 			currentPath: "/repo/worktrees/feature/subdir",
-			worktrees: []struct {
-				path   string
-				branch string
-				isMain bool
-			}{
-				{path: "/repo", branch: "main", isMain: true},
-				{path: "/repo/worktrees/feature", branch: "feature", isMain: false},
+			worktrees: []git.Worktree{
+				{Path: "/repo", Branch: "main", IsMain: true},
+				{Path: "/repo/worktrees/feature", Branch: "feature", IsMain: false},
 			},
 			expectedFound: true,
 			expectedMain:  false,
@@ -97,13 +87,9 @@ func TestFindCurrentWorktree(t *testing.T) {
 		{
 			name:        "main worktree",
 			currentPath: "/repo",
-			worktrees: []struct {
-				path   string
-				branch string
-				isMain bool
-			}{
-				{path: "/repo", branch: "main", isMain: true},
-				{path: "/repo/worktrees/feature", branch: "feature", isMain: false},
+			worktrees: []git.Worktree{
+				{Path: "/repo", Branch: "main", IsMain: true},
+				{Path: "/repo/worktrees/feature", Branch: "feature", IsMain: false},
 			},
 			expectedFound: true,
 			expectedMain:  true,
@@ -111,13 +97,9 @@ func TestFindCurrentWorktree(t *testing.T) {
 		{
 			name:        "not in worktree",
 			currentPath: "/other/path",
-			worktrees: []struct {
-				path   string
-				branch string
-				isMain bool
-			}{
-				{path: "/repo", branch: "main", isMain: true},
-				{path: "/repo/worktrees/feature", branch: "feature", isMain: false},
+			worktrees: []git.Worktree{
+				{Path: "/repo", Branch: "main", IsMain: true},
+				{Path: "/repo/worktrees/feature", Branch: "feature", IsMain: false},
 			},
 			expectedFound: false,
 		},
@@ -125,50 +107,16 @@ func TestFindCurrentWorktree(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Convert test worktrees to git.Worktree slice
-			var worktrees []struct {
-				Path   string
-				Branch string
-				IsMain bool
-			}
-			for _, wt := range tt.worktrees {
-				worktrees = append(worktrees, struct {
-					Path   string
-					Branch string
-					IsMain bool
-				}{
-					Path:   wt.path,
-					Branch: wt.branch,
-					IsMain: wt.isMain,
-				})
-			}
+			// Call the actual helper function
+			result := findCurrentWorktree(tt.currentPath, tt.worktrees)
 
-			// Create a simple worktree slice for testing
-			// Note: This is a simplified version for unit testing
-			// In real tests, we'd use git.Worktree but for simplicity we test the logic
-
-			// Test the path matching logic directly
-			// Find the longest matching path (most specific)
-			found := false
-			isMain := false
-			longestMatch := ""
-			for _, wt := range worktrees {
-				if tt.currentPath == wt.Path || (len(tt.currentPath) > len(wt.Path) && tt.currentPath[:len(wt.Path)] == wt.Path && tt.currentPath[len(wt.Path)] == '/') {
-					// Take the longest matching path
-					if len(wt.Path) > len(longestMatch) {
-						found = true
-						isMain = wt.IsMain
-						longestMatch = wt.Path
-					}
-				}
-			}
-
+			found := result != nil
 			if found != tt.expectedFound {
 				t.Errorf("Expected found=%v, got %v", tt.expectedFound, found)
 			}
 
-			if found && isMain != tt.expectedMain {
-				t.Errorf("Expected isMain=%v, got %v", tt.expectedMain, isMain)
+			if found && result.IsMain != tt.expectedMain {
+				t.Errorf("Expected isMain=%v, got %v", tt.expectedMain, result.IsMain)
 			}
 		})
 	}

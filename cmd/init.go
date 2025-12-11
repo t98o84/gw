@@ -51,21 +51,13 @@ gw() {
       cd "$target"
     fi
   elif [ "$1" = "close" ] || [ "$1" = "c" ]; then
-    # Capture stderr (worktree path and -y flag status) and stdout (main path)
-    local stderr_output main_path worktree_to_remove yes_flag
-    stderr_output="$(command gw close --print-path 2>&1 1>/dev/null)"
-    main_path="$(command gw close --print-path 2>/dev/null)"
+    # Capture stderr (worktree path) and stdout (main path) separately
+    local worktree_to_remove target
+    worktree_to_remove="$(command gw close --print-path 2>&1 >/dev/null)"
+    target="$(command gw close --print-path 2>/dev/null)"
     
-    # Parse stderr output: line 1 = worktree path, line 2 = -y flag
-    worktree_to_remove="$(echo "$stderr_output" | sed -n '1p')"
-    yes_flag="$(echo "$stderr_output" | sed -n '2p')"
-    
-    if [ -n "$main_path" ] && [ -n "$worktree_to_remove" ]; then
-      if [ "$yes_flag" = "-y" ]; then
-        cd "$main_path" && command gw rm -y "$worktree_to_remove"
-      else
-        cd "$main_path" && command gw rm "$worktree_to_remove"
-      fi
+    if [ -n "$target" ] && [ -n "$worktree_to_remove" ]; then
+      cd "$target" && command gw rm "$worktree_to_remove"
     fi
   else
     command gw "$@"
