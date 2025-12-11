@@ -54,7 +54,7 @@ gw/
 │   ├── ls.go            # gw ls - ワークツリー一覧
 │   ├── sw.go            # gw sw - ワークツリー切り替え
 │   ├── exec.go          # gw exec - ワークツリーでコマンド実行
-│   ├── fn.go            # gw fn - fzf でワークツリー検索
+│   ├── fd.go            # gw fd - fzf でワークツリー検索
 │   ├── init.go          # gw init - シェル統合スクリプト出力
 │   └── fzf.go           # fzf ヘルパー関数
 ├── internal/

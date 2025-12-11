@@ -19,7 +19,7 @@ func TestRootCmd(t *testing.T) {
 }
 
 func TestRootCmd_HasSubcommands(t *testing.T) {
-	expectedCommands := []string{"add", "ls", "rm", "sw", "exec", "init", "fn"}
+	expectedCommands := []string{"add", "ls", "rm", "sw", "exec", "init", "fd"}
 
 	commands := rootCmd.Commands()
 	commandMap := make(map[string]bool)

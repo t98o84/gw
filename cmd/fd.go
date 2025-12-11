@@ -6,10 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var fnPrintPath bool
+var fdPrintPath bool
 
-var fnCmd = &cobra.Command{
-	Use:     "fn",
+var fdCmd = &cobra.Command{
+	Use:     "fd",
 	Aliases: []string{"f"},
 	Short:   "Find a worktree with fzf",
 	Long: `Find a worktree using fzf interactive search.
@@ -17,18 +17,18 @@ var fnCmd = &cobra.Command{
 Prints the selected worktree name or path.
 
 Examples:
-  gw fn           # Interactive search, print worktree name
-  gw fn -p        # Interactive search, print full path`,
+  gw fd           # Interactive search, print worktree name
+  gw fd -p        # Interactive search, print full path`,
 	Args: cobra.NoArgs,
-	RunE: runFn,
+	RunE: runFd,
 }
 
 func init() {
-	fnCmd.Flags().BoolVarP(&fnPrintPath, "path", "p", false, "Print the full path instead of directory name")
-	rootCmd.AddCommand(fnCmd)
+	fdCmd.Flags().BoolVarP(&fdPrintPath, "path", "p", false, "Print the full path instead of directory name")
+	rootCmd.AddCommand(fdCmd)
 }
 
-func runFn(cmd *cobra.Command, args []string) error {
+func runFd(cmd *cobra.Command, args []string) error {
 	wt, err := selectWorktreeWithFzf(false)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func runFn(cmd *cobra.Command, args []string) error {
 		return nil // User cancelled
 	}
 
-	if fnPrintPath {
+	if fdPrintPath {
 		fmt.Println(wt.Path)
 	} else {
 		fmt.Println(wt.Branch)
