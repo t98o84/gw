@@ -4,12 +4,15 @@ package cmd
 type Config struct {
 	// Sw command flags
 	SwPrintPath bool
+	// Close command flags
+	ClosePrintPath bool
 }
 
 // NewConfig creates a new Config with default values
 func NewConfig() *Config {
 	return &Config{
-		SwPrintPath: false,
+		SwPrintPath:    false,
+		ClosePrintPath: false,
 	}
 }
 

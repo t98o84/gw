@@ -58,6 +58,10 @@ func handleError(err error) {
 		fmt.Fprintf(os.Stderr, "  Other:   https://github.com/junegunn/fzf#installation\n")
 		fmt.Fprintf(os.Stderr, "Or specify the target explicitly as an argument.\n")
 		return
+	case errors.IsNotInWorktreeError(err):
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Hint: The current directory is not within a git worktree\n")
+		return
 	case errors.IsGitHubAPIError(err):
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Hint: Check your GitHub token or PR identifier\n")

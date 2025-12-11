@@ -50,6 +50,15 @@ gw() {
     if [ -n "$target" ]; then
       cd "$target"
     fi
+  elif [ "$1" = "close" ] || [ "$1" = "c" ]; then
+    local target worktree_to_remove
+    target="$(command gw close --print-path 2>&1 1>&3 3>&-)"
+    worktree_to_remove="$target"
+    exec 3>&1
+    target="$(command gw close --print-path 2>/dev/null)"
+    if [ -n "$target" ] && [ -n "$worktree_to_remove" ]; then
+      cd "$target" && command gw rm "$worktree_to_remove"
+    fi
   else
     command gw "$@"
   fi
@@ -62,6 +71,12 @@ function gw
     set -l target (command gw sw --print-path $argv[2..])
     if test -n "$target"
       cd $target
+    end
+  else if test "$argv[1]" = "close" -o "$argv[1]" = "c"
+    set -l worktree_to_remove (command gw close --print-path 2>&1 >/dev/null)
+    set -l target (command gw close --print-path 2>/dev/null)
+    if test -n "$target" -a -n "$worktree_to_remove"
+      cd $target; and command gw rm $worktree_to_remove
     end
   else
     command gw $argv
