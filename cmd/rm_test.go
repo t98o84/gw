@@ -105,7 +105,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := deleteBranchSafely(tt.branchName, tt.currentBranch, tt.force)
+			err := deleteBranchSafely(tt.branchName, tt.currentBranch, "", tt.force)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("deleteBranchSafely() error = %v, wantErr %v", err, tt.wantErr)
 				return

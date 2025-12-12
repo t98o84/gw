@@ -297,9 +297,10 @@ func ListBranches() ([]string, error) {
 
 // GetCurrentBranch returns the name of the current branch
 func (m *Manager) GetCurrentBranch() (string, error) {
-	out, err := m.executor.Execute("git", "rev-parse", "--abbrev-ref", "HEAD")
+	args := []string{"rev-parse", "--abbrev-ref", "HEAD"}
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return "", fmt.Errorf("failed to get current branch: %w", err)
+		return "", errors.NewCommandExecutionError("git", args, err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -311,9 +312,10 @@ func GetCurrentBranch() (string, error) {
 
 // IsBranchMerged checks if a branch is merged into the current branch
 func (m *Manager) IsBranchMerged(branch string) (bool, error) {
-	out, err := m.executor.Execute("git", "branch", "--merged", "HEAD", "--format=%(refname:short)")
+	args := []string{"branch", "--merged", "HEAD", "--format=%(refname:short)"}
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return false, fmt.Errorf("failed to check merged branches: %w", err)
+		return false, errors.NewCommandExecutionError("git", args, err)
 	}
 
 	mergedBranches := strings.Split(strings.TrimSpace(string(out)), "\n")

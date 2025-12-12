@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -88,13 +89,26 @@ func runRm(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Get current branch if we need to delete branches
+	// Get current branch and main worktree path if we need to delete branches
 	var currentBranch string
+	var mainWorktreePath string
 	if mergedConfig.Rm.Branch {
 		var err error
 		currentBranch, err = git.GetCurrentBranch()
 		if err != nil {
 			return fmt.Errorf("failed to get current branch: %w", err)
+		}
+
+		// Get main worktree path to avoid cwd issues
+		allWorktrees, err := git.List()
+		if err != nil {
+			return fmt.Errorf("failed to list worktrees: %w", err)
+		}
+		for _, wt := range allWorktrees {
+			if wt.IsMain {
+				mainWorktreePath = wt.Path
+				break
+			}
 		}
 	}
 
@@ -113,7 +127,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 
 		// Delete branch if requested
 		if mergedConfig.Rm.Branch && wt.Branch != "" {
-			if err := deleteBranchSafely(wt.Branch, currentBranch, mergedConfig.Rm.Force); err != nil {
+			if err := deleteBranchSafely(wt.Branch, currentBranch, mainWorktreePath, mergedConfig.Rm.Force); err != nil {
 				fmt.Printf("⚠ Failed to delete branch %s: %v\n", wt.Branch, err)
 			} else {
 				fmt.Printf("✓ Branch deleted: %s\n", wt.Branch)
@@ -125,7 +139,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 }
 
 // deleteBranchSafely deletes a branch with safety checks
-func deleteBranchSafely(branchName, currentBranch string, force bool) error {
+func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, force bool) error {
 	// Safety check: don't delete main or master branches
 	if branchName == "main" || branchName == "master" {
 		return fmt.Errorf("refusing to delete %s branch", branchName)
@@ -134,6 +148,18 @@ func deleteBranchSafely(branchName, currentBranch string, force bool) error {
 	// Safety check: don't delete the current branch
 	if branchName == currentBranch {
 		return fmt.Errorf("refusing to delete the current branch (%s)", branchName)
+	}
+
+	// Change to main worktree directory to avoid "getwd: no such file or directory" errors
+	// when the current directory is inside a worktree that was just deleted
+	if mainWorktreePath != "" {
+		oldDir, err := os.Getwd()
+		if err == nil {
+			defer os.Chdir(oldDir)
+		}
+		if err := os.Chdir(mainWorktreePath); err != nil {
+			return fmt.Errorf("failed to change to main worktree directory: %w", err)
+		}
 	}
 
 	// Check if branch exists
@@ -164,7 +190,7 @@ func deleteBranchSafely(branchName, currentBranch string, force bool) error {
 		if !force && strings.Contains(errMsg, "not fully merged") {
 			return fmt.Errorf("branch is not merged (use -f/--force to delete anyway)")
 		}
-		return err
+		return fmt.Errorf("failed to delete branch %s: %w", branchName, err)
 	}
 
 	return nil
