@@ -110,6 +110,10 @@ func runRm(cmd *cobra.Command, args []string) error {
 				break
 			}
 		}
+		// Ensure we found the main worktree path when branch deletion is enabled
+		if mainWorktreePath == "" {
+			return fmt.Errorf("failed to determine main worktree path: aborting branch deletion")
+		}
 	}
 
 	// Remove all selected worktrees
@@ -127,8 +131,11 @@ func runRm(cmd *cobra.Command, args []string) error {
 
 		// Delete branch if requested
 		if mergedConfig.Rm.Branch && wt.Branch != "" {
-			if err := deleteBranchSafely(wt.Branch, currentBranch, mainWorktreePath, mergedConfig.Rm.Force); err != nil {
+			deleted, err := deleteBranchSafely(wt.Branch, currentBranch, mainWorktreePath, mergedConfig.Rm.Force)
+			if err != nil {
 				fmt.Printf("⚠ Failed to delete branch %s: %v\n", wt.Branch, err)
+			} else if !deleted {
+				fmt.Printf("ℹ Branch %s not found, skipping\n", wt.Branch)
 			} else {
 				fmt.Printf("✓ Branch deleted: %s\n", wt.Branch)
 			}
@@ -138,16 +145,19 @@ func runRm(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// deleteBranchSafely deletes a branch with safety checks
-func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, force bool) error {
+// deleteBranchSafely deletes a branch with safety checks.
+// Returns (true, nil) if the branch was deleted successfully,
+// (false, nil) if the branch doesn't exist,
+// or (false, err) if an error occurred.
+func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, force bool) (bool, error) {
 	// Safety check: don't delete main or master branches
 	if branchName == "main" || branchName == "master" {
-		return fmt.Errorf("refusing to delete %s branch", branchName)
+		return false, fmt.Errorf("refusing to delete %s branch", branchName)
 	}
 
 	// Safety check: don't delete the current branch
 	if branchName == currentBranch {
-		return fmt.Errorf("refusing to delete the current branch (%s)", branchName)
+		return false, fmt.Errorf("refusing to delete the current branch (%s)", branchName)
 	}
 
 	// Change to main worktree directory to avoid "getwd: no such file or directory" errors
@@ -156,34 +166,35 @@ func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, forc
 		oldDir, err := os.Getwd()
 		if err == nil {
 			defer func() {
-				// Best effort to restore the original directory
-				// Ignore errors as the directory may have been deleted
-				_ = os.Chdir(oldDir)
+				if err := os.Chdir(oldDir); err != nil {
+					// Log but don't fail - this is a best-effort restoration
+					fmt.Fprintf(os.Stderr, "warning: failed to restore directory: %v\n", err)
+				}
 			}()
 		}
 		if err := os.Chdir(mainWorktreePath); err != nil {
-			return fmt.Errorf("failed to change to main worktree directory: %w", err)
+			return false, fmt.Errorf("failed to change to main worktree directory: %w", err)
 		}
 	}
 
 	// Check if branch exists
 	exists, err := git.BranchExists(branchName)
 	if err != nil {
-		return fmt.Errorf("failed to check if branch exists: %w", err)
+		return false, fmt.Errorf("failed to check if branch exists: %w", err)
 	}
 	if !exists {
 		// Branch doesn't exist, nothing to do
-		return nil
+		return false, nil
 	}
 
 	// If not forcing, check if branch is merged
 	if !force {
 		merged, err := git.IsBranchMerged(branchName)
 		if err != nil {
-			return fmt.Errorf("failed to check if branch is merged: %w", err)
+			return false, fmt.Errorf("failed to check if branch is merged: %w", err)
 		}
 		if !merged {
-			return fmt.Errorf("branch is not merged (use -f/--force to delete anyway)")
+			return false, fmt.Errorf("branch is not merged (use -f/--force to delete anyway)")
 		}
 	}
 
@@ -192,10 +203,10 @@ func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, forc
 		// Check if the error message indicates the branch is not fully merged
 		errMsg := err.Error()
 		if !force && strings.Contains(errMsg, "not fully merged") {
-			return fmt.Errorf("branch is not merged (use -f/--force to delete anyway)")
+			return false, fmt.Errorf("branch is not merged (use -f/--force to delete anyway)")
 		}
-		return fmt.Errorf("failed to delete branch %s: %w", branchName, err)
+		return false, fmt.Errorf("failed to delete branch %s: %w", branchName, err)
 	}
 
-	return nil
+	return true, nil
 }

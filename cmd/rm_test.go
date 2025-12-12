@@ -66,6 +66,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 		branchName    string
 		currentBranch string
 		force         bool
+		wantDeleted   bool
 		wantErr       bool
 		errContains   string
 	}{
@@ -74,6 +75,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 			branchName:    "main",
 			currentBranch: "feature/test",
 			force:         false,
+			wantDeleted:   false,
 			wantErr:       true,
 			errContains:   "refusing to delete main branch",
 		},
@@ -82,6 +84,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 			branchName:    "master",
 			currentBranch: "feature/test",
 			force:         false,
+			wantDeleted:   false,
 			wantErr:       true,
 			errContains:   "refusing to delete master branch",
 		},
@@ -90,6 +93,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 			branchName:    "feature/test",
 			currentBranch: "feature/test",
 			force:         false,
+			wantDeleted:   false,
 			wantErr:       true,
 			errContains:   "refusing to delete the current branch",
 		},
@@ -98,6 +102,7 @@ func TestDeleteBranchSafely(t *testing.T) {
 			branchName:    "main",
 			currentBranch: "feature/test",
 			force:         true,
+			wantDeleted:   false,
 			wantErr:       true,
 			errContains:   "refusing to delete main branch",
 		},
@@ -105,10 +110,13 @@ func TestDeleteBranchSafely(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := deleteBranchSafely(tt.branchName, tt.currentBranch, "", tt.force)
+			deleted, err := deleteBranchSafely(tt.branchName, tt.currentBranch, "", tt.force)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("deleteBranchSafely() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if deleted != tt.wantDeleted {
+				t.Errorf("deleteBranchSafely() deleted = %v, want %v", deleted, tt.wantDeleted)
 			}
 			if tt.wantErr && tt.errContains != "" {
 				if err == nil {
