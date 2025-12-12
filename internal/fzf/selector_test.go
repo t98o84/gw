@@ -222,7 +222,7 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 				},
 			},
 			worktrees: []*git.Worktree{
-			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			wantErr:     true,
@@ -243,7 +243,7 @@ func TestFzfSelector_SelectWorktree(t *testing.T) {
 				return "repo (main)", nil
 			}),
 			worktrees: []*git.Worktree{
-			&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
+				&git.Worktree{Path: "/repo", Branch: "main", IsMain: true},
 			},
 			excludeMain: false,
 			wantBranch:  "main",

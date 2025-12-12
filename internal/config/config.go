@@ -10,7 +10,9 @@ type Config struct {
 
 // AddConfig represents the configuration for the add command.
 type AddConfig struct {
-	Open bool `yaml:"open"`
+	Open        bool `yaml:"open"`
+	Sync        bool `yaml:"sync"`
+	SyncIgnored bool `yaml:"sync_ignored"`
 }
 
 // CloseConfig represents the configuration for the close command.
@@ -27,7 +29,9 @@ type RmConfig struct {
 func NewConfig() *Config {
 	return &Config{
 		Add: AddConfig{
-			Open: false,
+			Open:        false,
+			Sync:        false,
+			SyncIgnored: false,
 		},
 		Close: CloseConfig{
 			Force: false,
@@ -47,7 +51,7 @@ func (c *Config) Validate() error {
 
 // MergeWithFlags merges the configuration with command-line flags.
 // Flags take precedence over config file values.
-func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool) *Config {
+func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool, syncFlag *bool, syncIgnoredFlag *bool) *Config {
 	merged := &Config{
 		Add:    c.Add,
 		Close:  c.Close,
@@ -57,6 +61,14 @@ func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag
 
 	if openFlag != nil {
 		merged.Add.Open = *openFlag
+	}
+
+	if syncFlag != nil {
+		merged.Add.Sync = *syncFlag
+	}
+
+	if syncIgnoredFlag != nil {
+		merged.Add.SyncIgnored = *syncIgnoredFlag
 	}
 
 	if editorFlag != nil && *editorFlag != "" {

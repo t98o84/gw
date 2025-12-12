@@ -807,7 +807,7 @@ func TestCreateWorktree(t *testing.T) {
 			defer resetMocks()
 			tt.setupMock()
 
-			err := createWorktree(tt.repoName, tt.branch, tt.createBranch, tt.openEditor)
+			err := createWorktree(tt.repoName, tt.branch, tt.createBranch, tt.openEditor, syncNone)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createWorktree() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -10,6 +10,12 @@ func TestNewConfig(t *testing.T) {
 	if cfg.Add.Open != false {
 		t.Errorf("NewConfig() Add.Open = %v, want false", cfg.Add.Open)
 	}
+	if cfg.Add.Sync != false {
+		t.Errorf("NewConfig() Add.Sync = %v, want false", cfg.Add.Sync)
+	}
+	if cfg.Add.SyncIgnored != false {
+		t.Errorf("NewConfig() Add.SyncIgnored = %v, want false", cfg.Add.SyncIgnored)
+	}
 	if cfg.Close.Force != false {
 		t.Errorf("NewConfig() Close.Force = %v, want false", cfg.Close.Force)
 	}
@@ -206,7 +212,7 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			merged := tt.config.MergeWithFlags(tt.openFlag, tt.editorFlag, tt.closeYesFlag, tt.rmYesFlag)
+			merged := tt.config.MergeWithFlags(tt.openFlag, tt.editorFlag, tt.closeYesFlag, tt.rmYesFlag, nil, nil)
 			if merged.Add.Open != tt.wantOpen {
 				t.Errorf("MergeWithFlags() Add.Open = %v, want %v", merged.Add.Open, tt.wantOpen)
 			}

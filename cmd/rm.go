@@ -49,7 +49,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("force") || cmd.Flags().Changed("yes") {
 		forceFlagPtr = &rmConfig.Force
 	}
-	mergedConfig := cfg.MergeWithFlags(nil, nil, nil, forceFlagPtr)
+	mergedConfig := cfg.MergeWithFlags(nil, nil, nil, forceFlagPtr, nil, nil)
 
 	var worktrees []*git.Worktree
 

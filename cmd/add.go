@@ -14,10 +14,12 @@ var (
 	// Global configuration loaded from config file
 	globalConfig *config.Config
 	// Command-line flags
-	flagAddOpen   bool
-	flagEditor    string
-	flagAddBranch bool
-	flagAddPR     string
+	flagAddOpen     bool
+	flagEditor      string
+	flagAddBranch   bool
+	flagAddPR       string
+	flagSyncAll     bool
+	flagSyncIgnored bool
 )
 
 var addCmd = &cobra.Command{
@@ -53,6 +55,8 @@ func init() {
 	addCmd.Flags().StringVarP(&flagAddPR, "pr", "p", "", "PR number or URL to create worktree for")
 	addCmd.Flags().BoolVar(&flagAddOpen, "open", false, "Open worktree in editor after creation")
 	addCmd.Flags().StringVarP(&flagEditor, "editor", "e", "", "Editor command to use (e.g., code, vim)")
+	addCmd.Flags().BoolVarP(&flagSyncAll, "sync", "s", false, "Sync all changed files from main worktree")
+	addCmd.Flags().BoolVarP(&flagSyncIgnored, "sync-ignored", "i", false, "Sync gitignored files from main worktree")
 	rootCmd.AddCommand(addCmd)
 }
 
@@ -66,6 +70,9 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if flagAddBranch && flagAddPR != "" {
 		return fmt.Errorf("cannot use --branch and --pr together")
 	}
+	if flagSyncAll && flagSyncIgnored {
+		return fmt.Errorf("cannot use --sync and --sync-ignored together")
+	}
 
 	// Merge config with flags (flags take precedence)
 	var openFlagPtr *bool
@@ -76,7 +83,17 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("editor") {
 		editorFlagPtr = &flagEditor
 	}
-	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil)
+	var syncFlagPtr *bool
+	if cmd.Flags().Changed("sync") || cmd.Flags().Changed("sync-ignored") {
+		// If either flag is set, determine sync behavior
+		syncEnabled := flagSyncAll
+		syncFlagPtr = &syncEnabled
+	}
+	var syncIgnoredFlagPtr *bool
+	if cmd.Flags().Changed("sync-ignored") {
+		syncIgnoredFlagPtr = &flagSyncIgnored
+	}
+	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil, syncFlagPtr, syncIgnoredFlagPtr)
 
 	// Validate config
 	if err := mergedConfig.Validate(); err != nil {
@@ -123,6 +140,9 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	// Get editor command from merged config
 	editorCmd := mergedConfig.GetEditor()
 
+	// Determine sync mode
+	syncMode := determineSyncMode(mergedConfig.Add.Sync, mergedConfig.Add.SyncIgnored, flagSyncAll, flagSyncIgnored)
+
 	// Create the worktree
-	return createWorktree(repoName, branch, flagAddBranch, editorCmd)
+	return createWorktree(repoName, branch, flagAddBranch, editorCmd, syncMode)
 }
