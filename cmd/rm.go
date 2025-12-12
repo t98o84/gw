@@ -155,7 +155,11 @@ func deleteBranchSafely(branchName, currentBranch, mainWorktreePath string, forc
 	if mainWorktreePath != "" {
 		oldDir, err := os.Getwd()
 		if err == nil {
-			defer os.Chdir(oldDir)
+			defer func() {
+				// Best effort to restore the original directory
+				// Ignore errors as the directory may have been deleted
+				_ = os.Chdir(oldDir)
+			}()
 		}
 		if err := os.Chdir(mainWorktreePath); err != nil {
 			return fmt.Errorf("failed to change to main worktree directory: %w", err)
