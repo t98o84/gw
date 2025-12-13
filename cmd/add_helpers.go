@@ -249,8 +249,9 @@ func syncAllDiffs(mainWtPath, newWtPath string) error {
 func syncIgnoredFiles(mainWtPath, newWtPath string) error {
 	fmt.Println("Syncing gitignored files...")
 
-	// Get list of gitignored files
-	cmd := exec.Command("git", "-C", mainWtPath, "ls-files", "--others", "--ignored", "--exclude-standard")
+	// Get list of all ignored files (including those in global gitignore)
+	// Using 'git status --ignored --porcelain' to include both local and global ignores
+	cmd := exec.Command("git", "-C", mainWtPath, "status", "--ignored", "--porcelain")
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to list ignored files: %w", err)
@@ -260,7 +261,16 @@ func syncIgnoredFiles(mainWtPath, newWtPath string) error {
 	copiedCount := 0
 
 	for _, line := range lines {
-		filePath := strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Parse git status output - look for ignored files ("!!" prefix)
+		if len(line) < 4 || !strings.HasPrefix(line, "!!") {
+			continue
+		}
+
+		filePath := strings.TrimSpace(line[3:])
 		if filePath == "" {
 			continue
 		}
