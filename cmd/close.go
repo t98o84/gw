@@ -50,7 +50,7 @@ func runClose(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("yes") {
 		yesFlagPtr = &closeConfig.Yes
 	}
-	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr, nil, nil, nil)
+	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr, nil, nil, nil, nil)
 
 	// Get current directory
 	cwd, err := os.Getwd()

@@ -98,6 +98,177 @@ func TestManager_GetRepoRoot(t *testing.T) {
 	}
 }
 
+func TestManager_GetCurrentBranch(t *testing.T) {
+	tests := []struct {
+		name    string
+		mock    *shell.MockExecutor
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "current branch success",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "rev-parse" && args[1] == "--abbrev-ref" && args[2] == "HEAD" {
+						return []byte("feature/test\n"), nil
+					}
+					return nil, fmt.Errorf("unexpected command")
+				},
+			},
+			want:    "feature/test",
+			wantErr: false,
+		},
+		{
+			name: "git command fails",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					return nil, fmt.Errorf("git error")
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewManager(tt.mock)
+			got, err := m.GetCurrentBranch()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Manager.GetCurrentBranch() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Manager.GetCurrentBranch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestManager_IsBranchMerged(t *testing.T) {
+	tests := []struct {
+		name    string
+		branch  string
+		mock    *shell.MockExecutor
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:   "branch is merged",
+			branch: "feature/test",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "branch" && args[1] == "--merged" {
+						return []byte("main\nfeature/test\nfeature/other\n"), nil
+					}
+					return nil, fmt.Errorf("unexpected command")
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:   "branch is not merged",
+			branch: "feature/unmerged",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "branch" && args[1] == "--merged" {
+						return []byte("main\nfeature/test\n"), nil
+					}
+					return nil, fmt.Errorf("unexpected command")
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:   "git command fails",
+			branch: "feature/test",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					return nil, fmt.Errorf("git error")
+				},
+			},
+			want:    false,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewManager(tt.mock)
+			got, err := m.IsBranchMerged(tt.branch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Manager.IsBranchMerged() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Manager.IsBranchMerged() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestManager_DeleteBranch(t *testing.T) {
+	tests := []struct {
+		name       string
+		branchName string
+		force      bool
+		mock       *shell.MockExecutor
+		wantErr    bool
+	}{
+		{
+			name:       "delete branch without force",
+			branchName: "feature/test",
+			force:      false,
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "branch" && args[1] == "-d" && args[2] == "feature/test" {
+						return []byte(""), nil
+					}
+					return nil, fmt.Errorf("unexpected command")
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:       "delete branch with force",
+			branchName: "feature/test",
+			force:      true,
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "branch" && args[1] == "-D" && args[2] == "feature/test" {
+						return []byte(""), nil
+					}
+					return nil, fmt.Errorf("unexpected command")
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:       "delete branch fails",
+			branchName: "feature/test",
+			force:      false,
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					return nil, fmt.Errorf("branch not merged")
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewManager(tt.mock)
+			err := m.DeleteBranch(tt.branchName, tt.force)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Manager.DeleteBranch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestManager_GetRepoName(t *testing.T) {
 	tests := []struct {
 		name    string

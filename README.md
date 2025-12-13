@@ -95,12 +95,15 @@ gw init fish | source
 ```yaml
 add:
   open: true  # ワークツリー作成後に自動的にエディターで開く
+rm:
+  branch: false  # ワークツリー削除時にブランチも削除する
 editor: code  # 使用するエディターコマンド
 ```
 
 #### 設定項目
 
 - `add.open` (boolean): ワークツリー作成後に自動的にエディターで開くかどうか（デフォルト: `false`）
+- `rm.branch` (boolean): ワークツリー削除時に関連するブランチも削除するかどうか（デフォルト: `false`）
 - `editor` (string): 使用するエディターコマンド（例: `code`, `vim`, `emacs`）
 
 **注意**: コマンドラインフラグは設定ファイルの値より優先されます。
@@ -150,7 +153,19 @@ gw ls
 gw rm feature/hoge
 gw rm feature-hoge
 gw rm ex-repo-feature-hoge
+
+# ブランチも一緒に削除（-b/--branch オプション）
+gw rm -b feature/hoge
+gw rm --branch feature-hoge
+
+# 強制削除（マージされていないブランチも削除）
+gw rm -f -b feature/hoge
 ```
+
+**注意**: ブランチ削除には以下の安全性チェックが適用されます：
+- `main` または `master` ブランチは削除できません
+- カレントブランチは削除できません
+- マージされていないブランチは `-f`/`--force` フラグなしでは削除できません
 
 ### ワークツリーでコマンド実行
 
@@ -180,6 +195,7 @@ gw sw
 | `gw add --editor <cmd>` | `gw a -e` | 使用するエディターコマンドを指定 |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
 | `gw rm <name>` | `gw r` | ワークツリー削除 |
+| `gw rm -b <name>` | `gw r -b` | ワークツリーとブランチを削除 |
 | `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |
 | `gw sw [name]` | `gw s` | 対象ワークツリーに移動（引数なしで fzf） |
 | `gw fd` | `gw f` | fzf でワークツリー検索 |

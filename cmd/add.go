@@ -93,7 +93,7 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("sync-ignored") {
 		syncIgnoredFlagPtr = &flagSyncIgnored
 	}
-	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil, syncFlagPtr, syncIgnoredFlagPtr)
+	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil, nil, syncFlagPtr, syncIgnoredFlagPtr)
 
 	// Validate config
 	if err := mergedConfig.Validate(); err != nil {

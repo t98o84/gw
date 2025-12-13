@@ -22,7 +22,8 @@ type CloseConfig struct {
 
 // RmConfig represents the configuration for the rm command.
 type RmConfig struct {
-	Force bool `yaml:"force"`
+	Force  bool `yaml:"force"`
+	Branch bool `yaml:"branch"`
 }
 
 // NewConfig returns a new Config with default values.
@@ -37,7 +38,8 @@ func NewConfig() *Config {
 			Force: false,
 		},
 		Rm: RmConfig{
-			Force: false,
+			Force:  false,
+			Branch: false,
 		},
 		Editor: "",
 	}
@@ -51,7 +53,7 @@ func (c *Config) Validate() error {
 
 // MergeWithFlags merges the configuration with command-line flags.
 // Flags take precedence over config file values.
-func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool, syncFlag *bool, syncIgnoredFlag *bool) *Config {
+func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool, rmBranchFlag *bool, syncFlag *bool, syncIgnoredFlag *bool) *Config {
 	merged := &Config{
 		Add:    c.Add,
 		Close:  c.Close,
@@ -81,6 +83,10 @@ func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag
 
 	if rmYesFlag != nil {
 		merged.Rm.Force = *rmYesFlag
+	}
+
+	if rmBranchFlag != nil {
+		merged.Rm.Branch = *rmBranchFlag
 	}
 
 	return merged

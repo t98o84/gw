@@ -35,6 +35,12 @@ rm:
   # Default: false
   force: true
 
+  # Also delete the associated git branch when removing a worktree
+  # When true, the git branch will be deleted after the worktree is removed
+  # Safety checks are performed: main/master branches, current branch, and unmerged branches
+  # Default: false
+  branch: false
+
 # Editor command to use when opening worktrees
 # This is used when add.open is true
 # Examples: code, vim, emacs, subl, atom

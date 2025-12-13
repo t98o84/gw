@@ -294,3 +294,62 @@ func (m *Manager) ListBranches() ([]string, error) {
 func ListBranches() ([]string, error) {
 	return defaultManager.ListBranches()
 }
+
+// GetCurrentBranch returns the name of the current branch
+func (m *Manager) GetCurrentBranch() (string, error) {
+	args := []string{"rev-parse", "--abbrev-ref", "HEAD"}
+	out, err := m.executor.Execute("git", args...)
+	if err != nil {
+		return "", errors.NewCommandExecutionError("git", args, err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// GetCurrentBranch is a package-level wrapper for backward compatibility
+func GetCurrentBranch() (string, error) {
+	return defaultManager.GetCurrentBranch()
+}
+
+// IsBranchMerged checks if a branch is merged into the current branch
+func (m *Manager) IsBranchMerged(branch string) (bool, error) {
+	args := []string{"branch", "--merged", "HEAD", "--format=%(refname:short)"}
+	out, err := m.executor.Execute("git", args...)
+	if err != nil {
+		return false, errors.NewCommandExecutionError("git", args, err)
+	}
+
+	mergedBranches := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, mergedBranch := range mergedBranches {
+		if strings.TrimSpace(mergedBranch) == branch {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// IsBranchMerged is a package-level wrapper for backward compatibility
+func IsBranchMerged(branch string) (bool, error) {
+	return defaultManager.IsBranchMerged(branch)
+}
+
+// DeleteBranch deletes a git branch
+func (m *Manager) DeleteBranch(branchName string, force bool) error {
+	args := []string{"branch"}
+	if force {
+		args = append(args, "-D")
+	} else {
+		args = append(args, "-d")
+	}
+	args = append(args, branchName)
+
+	_, err := m.executor.Execute("git", args...)
+	if err != nil {
+		return errors.NewCommandExecutionError("git", args, err)
+	}
+	return nil
+}
+
+// DeleteBranch is a package-level wrapper for backward compatibility
+func DeleteBranch(branchName string, force bool) error {
+	return defaultManager.DeleteBranch(branchName, force)
+}
