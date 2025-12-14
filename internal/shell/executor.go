@@ -28,7 +28,7 @@ func NewRealExecutor() *RealExecutor {
 // Execute runs a command and returns its output
 func (e *RealExecutor) Execute(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
-	return cmd.Output()
+	return cmd.CombinedOutput()
 }
 
 // ExecuteWithStdio runs a command with connected standard I/O

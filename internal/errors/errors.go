@@ -3,6 +3,8 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"os/exec"
+	"strings"
 )
 
 // BranchNotFoundError represents an error when a branch cannot be found
@@ -92,14 +94,26 @@ func NewGitHubAPIError(operation string, status int, err error) *GitHubAPIError 
 type CommandExecutionError struct {
 	Command string
 	Args    []string
+	Stderr  string
 	Err     error
 }
 
 func (e *CommandExecutionError) Error() string {
+	var sb strings.Builder
+	
 	if len(e.Args) > 0 {
-		return fmt.Sprintf("command execution failed: %s %v: %v", e.Command, e.Args, e.Err)
+		sb.WriteString(fmt.Sprintf("command execution failed: %s %v", e.Command, e.Args))
+	} else {
+		sb.WriteString(fmt.Sprintf("command execution failed: %s", e.Command))
 	}
-	return fmt.Sprintf("command execution failed: %s: %v", e.Command, e.Err)
+	
+	if e.Stderr != "" {
+		sb.WriteString(fmt.Sprintf("\n%s", strings.TrimSpace(e.Stderr)))
+	} else if e.Err != nil {
+		sb.WriteString(fmt.Sprintf(": %v", e.Err))
+	}
+	
+	return sb.String()
 }
 
 func (e *CommandExecutionError) Unwrap() error {
@@ -113,7 +127,18 @@ func (e *CommandExecutionError) Is(target error) bool {
 
 // NewCommandExecutionError creates a new CommandExecutionError
 func NewCommandExecutionError(command string, args []string, err error) *CommandExecutionError {
-	return &CommandExecutionError{Command: command, Args: args, Err: err}
+	stderr := ""
+	
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		stderr = string(exitErr.Stderr)
+	}
+	
+	return &CommandExecutionError{
+		Command: command,
+		Args:    args,
+		Stderr:  stderr,
+		Err:     err,
+	}
 }
 
 // InvalidInputError represents an error when user input is invalid
