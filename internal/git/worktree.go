@@ -356,33 +356,35 @@ func DeleteBranch(branchName string, force bool) error {
 
 // GetChangedFiles returns all files with differences (modified, staged, untracked) in the specified directory
 func (m *Manager) GetChangedFiles(path string) ([]string, error) {
-	args := []string{"-C", path, "status", "--porcelain"}
+	args := []string{"-C", path, "status", "--porcelain", "-z"}
 	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get git status: %w", err)
+		return nil, fmt.Errorf("failed to get git status (-C %s): %w", path, err)
 	}
 
 	var files []string
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if line == "" {
+	parts := bytes.Split(out, []byte{0})
+	for i := 0; i < len(parts); i++ {
+		p := parts[i]
+		if len(p) < 4 {
 			continue
 		}
 
-		// Parse git status output
-		if len(line) < 4 {
-			continue
-		}
-
-		filePath := strings.TrimSpace(line[3:])
+		// Parse git status output: XY filename
+		// X = index status, Y = working tree status
+		filePath := string(p[3:])
 		if filePath == "" {
 			continue
 		}
 
-		// Handle renamed files (e.g., "R  old.txt -> new.txt")
-		if strings.Contains(filePath, " -> ") {
-			parts := strings.Split(filePath, " -> ")
-			filePath = strings.TrimSpace(parts[1])
+		// For renamed/copied files in -z mode, the format is:
+		// XY<space>NUL<old_path>NUL<new_path>NUL
+		// We want the new path, which is the next part
+		if p[0] == 'R' || p[0] == 'C' {
+			i++ // Skip the old path, move to the new path
+			if i < len(parts) && len(parts[i]) > 0 {
+				filePath = string(parts[i])
+			}
 		}
 
 		files = append(files, filePath)
@@ -398,25 +400,25 @@ func GetChangedFiles(path string) ([]string, error) {
 
 // GetIgnoredFiles returns all gitignored files (including those in global gitignore) in the specified directory
 func (m *Manager) GetIgnoredFiles(path string) ([]string, error) {
-	args := []string{"-C", path, "status", "--ignored", "--porcelain"}
+	args := []string{"-C", path, "status", "--ignored", "--porcelain", "-z"}
 	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list ignored files: %w", err)
+		return nil, fmt.Errorf("failed to list ignored files (-C %s): %w", path, err)
 	}
 
 	var files []string
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if line == "" {
+	parts := bytes.Split(out, []byte{0})
+	for _, p := range parts {
+		if len(p) < 4 {
 			continue
 		}
 
 		// Parse git status output - look for ignored files ("!!" prefix)
-		if len(line) < 4 || !strings.HasPrefix(line, "!!") {
+		if !(p[0] == '!' && p[1] == '!') {
 			continue
 		}
 
-		filePath := strings.TrimSpace(line[3:])
+		filePath := strings.TrimSpace(string(p[3:]))
 		if filePath == "" {
 			continue
 		}
