@@ -378,13 +378,11 @@ func (m *Manager) GetChangedFiles(path string) ([]string, error) {
 		}
 
 		// For renamed/copied files in -z mode, the format is:
-		// XY<space>NUL<old_path>NUL<new_path>NUL
-		// We want the new path, which is the next part
+		// R<space><newpath><NUL><oldpath><NUL>
+		// The newpath is already extracted above (p[3:])
+		// Skip the next part which is the oldpath
 		if p[0] == 'R' || p[0] == 'C' {
-			i++ // Skip the old path, move to the new path
-			if i < len(parts) && len(parts[i]) > 0 {
-				filePath = string(parts[i])
-			}
+			i++ // Skip the oldpath in the next part
 		}
 
 		files = append(files, filePath)
@@ -400,7 +398,7 @@ func GetChangedFiles(path string) ([]string, error) {
 
 // GetIgnoredFiles returns all gitignored files (including those in global gitignore) in the specified directory
 func (m *Manager) GetIgnoredFiles(path string) ([]string, error) {
-	args := []string{"-C", path, "status", "--ignored", "--porcelain", "-z"}
+	args := []string{"-C", path, "ls-files", "--others", "--ignored", "--exclude-standard", "-z"}
 	out, err := m.executor.Execute("git", args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list ignored files (-C %s): %w", path, err)
@@ -409,20 +407,10 @@ func (m *Manager) GetIgnoredFiles(path string) ([]string, error) {
 	var files []string
 	parts := bytes.Split(out, []byte{0})
 	for _, p := range parts {
-		if len(p) < 4 {
-			continue
-		}
-
-		// Parse git status output - look for ignored files ("!!" prefix)
-		if !(p[0] == '!' && p[1] == '!') {
-			continue
-		}
-
-		filePath := strings.TrimSpace(string(p[3:]))
+		filePath := strings.TrimSpace(string(p))
 		if filePath == "" {
 			continue
 		}
-
 		files = append(files, filePath)
 	}
 
