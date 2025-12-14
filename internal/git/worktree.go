@@ -353,3 +353,81 @@ func (m *Manager) DeleteBranch(branchName string, force bool) error {
 func DeleteBranch(branchName string, force bool) error {
 	return defaultManager.DeleteBranch(branchName, force)
 }
+
+// GetChangedFiles returns all files with differences (modified, staged, untracked) in the specified directory
+func (m *Manager) GetChangedFiles(path string) ([]string, error) {
+	args := []string{"-C", path, "status", "--porcelain"}
+	out, err := m.executor.Execute("git", args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	var files []string
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		// Parse git status output
+		if len(line) < 4 {
+			continue
+		}
+
+		filePath := strings.TrimSpace(line[3:])
+		if filePath == "" {
+			continue
+		}
+
+		// Handle renamed files (e.g., "R  old.txt -> new.txt")
+		if strings.Contains(filePath, " -> ") {
+			parts := strings.Split(filePath, " -> ")
+			filePath = strings.TrimSpace(parts[1])
+		}
+
+		files = append(files, filePath)
+	}
+
+	return files, nil
+}
+
+// GetChangedFiles is a package-level wrapper for backward compatibility
+func GetChangedFiles(path string) ([]string, error) {
+	return defaultManager.GetChangedFiles(path)
+}
+
+// GetIgnoredFiles returns all gitignored files (including those in global gitignore) in the specified directory
+func (m *Manager) GetIgnoredFiles(path string) ([]string, error) {
+	args := []string{"-C", path, "status", "--ignored", "--porcelain"}
+	out, err := m.executor.Execute("git", args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list ignored files: %w", err)
+	}
+
+	var files []string
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		// Parse git status output - look for ignored files ("!!" prefix)
+		if len(line) < 4 || !strings.HasPrefix(line, "!!") {
+			continue
+		}
+
+		filePath := strings.TrimSpace(line[3:])
+		if filePath == "" {
+			continue
+		}
+
+		files = append(files, filePath)
+	}
+
+	return files, nil
+}
+
+// GetIgnoredFiles is a package-level wrapper for backward compatibility
+func GetIgnoredFiles(path string) ([]string, error) {
+	return defaultManager.GetIgnoredFiles(path)
+}
