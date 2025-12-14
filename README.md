@@ -106,7 +106,25 @@ editor: code  # 使用するエディターコマンド
 - `rm.branch` (boolean): ワークツリー削除時に関連するブランチも削除するかどうか（デフォルト: `false`）
 - `editor` (string): 使用するエディターコマンド（例: `code`, `vim`, `emacs`）
 
-**注意**: コマンドラインフラグは設定ファイルの値より優先されます。
+**注意**: フラグの優先順位は以下の通りです：`--no-*` フラグ > 通常フラグ > 設定ファイル
+
+#### --no-* フラグについて
+
+設定ファイルで有効化したオプションをコマンド実行時に無効化できます：
+
+- `--no-open`: `add.open=true` でも開かない
+- `--no-sync`: `add.sync=true` でも同期しない
+- `--no-sync-ignored`: `add.sync_ignored=true` でも gitignored ファイルを同期しない
+- `--no-yes` / `--no-force`: `close.force=true` または `rm.force=true` でも確認プロンプトを表示
+- `--no-branch`: `rm.branch=true` でもブランチを削除しない
+
+```bash
+# 例: config で add.open=true でも開かない
+gw add --no-open feature/hoge
+
+# 例: config で rm.branch=true でもブランチを残す
+gw rm --no-branch feature/hoge
+```
 
 ### ワークツリーの作成
 
@@ -131,6 +149,9 @@ gw add --open -e vim feature/hoge
 # 設定ファイルで add.open=true と editor=code を設定している場合
 # フラグなしでもエディターが自動的に開く
 gw add feature/hoge
+
+# 設定ファイルで add.open=true でも開かない（--no-open フラグ）
+gw add --no-open feature/hoge
 
 # オプションの組み合わせも可能
 gw add -b --open --editor code feature/new
@@ -192,10 +213,18 @@ gw sw
 | `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
 | `gw add --pr <url\|number>` | `gw a --pr`, `gw a -p` | PR ブランチのワークツリー作成 |
 | `gw add --open` | `gw a --open` | ワークツリー作成後にエディターで開く |
+| `gw add --no-open` | `gw a --no-open` | 設定を無視してエディターで開かない |
 | `gw add --editor <cmd>` | `gw a -e` | 使用するエディターコマンドを指定 |
+| `gw add --sync` | `gw a --sync` | メインワークツリーからファイルを同期 |
+| `gw add --no-sync` | `gw a --no-sync` | 設定を無視してファイルを同期しない |
+| `gw add --sync-ignored` | `gw a --sync-ignored` | gitignored ファイルも同期 |
+| `gw add --no-sync-ignored` | `gw a --no-sync-ignored` | 設定を無視して gitignored ファイルを同期しない |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
 | `gw rm <name>` | `gw r` | ワークツリー削除 |
 | `gw rm -b <name>` | `gw r -b` | ワークツリーとブランチを削除 |
+| `gw rm --no-branch <name>` | `gw r --no-branch` | 設定を無視してブランチを削除しない |
+| `gw rm --yes/-y` | `gw r -y` | 確認プロンプトをスキップ |
+| `gw rm --no-yes/--no-force` | `gw r --no-yes` | 設定を無視して確認プロンプトを表示 |
 | `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |
 | `gw sw [name]` | `gw s` | 対象ワークツリーに移動（引数なしで fzf） |
 | `gw fd` | `gw f` | fzf でワークツリー検索 |

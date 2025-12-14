@@ -53,6 +53,27 @@ func TestRmCmd_BranchFlag(t *testing.T) {
 	}
 }
 
+func TestRmCmd_NoYesFlag(t *testing.T) {
+	flag := rmCmd.Flags().Lookup("no-yes")
+	if flag == nil {
+		t.Fatal("Expected 'no-yes' flag to be defined")
+	}
+}
+
+func TestRmCmd_NoForceFlag(t *testing.T) {
+	flag := rmCmd.Flags().Lookup("no-force")
+	if flag == nil {
+		t.Fatal("Expected 'no-force' flag to be defined")
+	}
+}
+
+func TestRmCmd_NoBranchFlag(t *testing.T) {
+	flag := rmCmd.Flags().Lookup("no-branch")
+	if flag == nil {
+		t.Fatal("Expected 'no-branch' flag to be defined")
+	}
+}
+
 func TestRmCmd_AcceptsMultipleArgs(t *testing.T) {
 	// rmCmd should accept multiple arguments (no Args restriction)
 	if rmCmd.Args != nil {

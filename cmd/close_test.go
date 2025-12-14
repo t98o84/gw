@@ -56,6 +56,27 @@ func TestCloseCmd_YesFlagShorthand(t *testing.T) {
 	}
 }
 
+func TestCloseCmd_ForceFlag(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("force")
+	if flag == nil {
+		t.Fatal("Expected 'force' flag to be defined")
+	}
+}
+
+func TestCloseCmd_NoYesFlag(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("no-yes")
+	if flag == nil {
+		t.Fatal("Expected 'no-yes' flag to be defined")
+	}
+}
+
+func TestCloseCmd_NoForceFlag(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("no-force")
+	if flag == nil {
+		t.Fatal("Expected 'no-force' flag to be defined")
+	}
+}
+
 func TestFindCurrentWorktree(t *testing.T) {
 	tests := []struct {
 		name          string

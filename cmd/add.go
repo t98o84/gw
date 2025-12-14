@@ -20,6 +20,10 @@ var (
 	flagAddPR       string
 	flagSyncAll     bool
 	flagSyncIgnored bool
+	// Negation flags (--no-*)
+	flagNoOpen        bool
+	flagNoSync        bool
+	flagNoSyncIgnored bool
 )
 
 var addCmd = &cobra.Command{
@@ -57,6 +61,10 @@ func init() {
 	addCmd.Flags().StringVarP(&flagEditor, "editor", "e", "", "Editor command to use (e.g., code, vim)")
 	addCmd.Flags().BoolVarP(&flagSyncAll, "sync", "s", false, "Sync all changed files from main worktree")
 	addCmd.Flags().BoolVarP(&flagSyncIgnored, "sync-ignored", "i", false, "Sync gitignored files from main worktree")
+	// Negation flags
+	addCmd.Flags().BoolVar(&flagNoOpen, "no-open", false, "Force disable opening worktree in editor (overrides config and --open)")
+	addCmd.Flags().BoolVar(&flagNoSync, "no-sync", false, "Force disable syncing changed files (overrides config and --sync)")
+	addCmd.Flags().BoolVar(&flagNoSyncIgnored, "no-sync-ignored", false, "Force disable syncing gitignored files (overrides config and --sync-ignored)")
 	rootCmd.AddCommand(addCmd)
 }
 
@@ -72,6 +80,17 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	}
 	if flagSyncAll && flagSyncIgnored {
 		return fmt.Errorf("cannot use --sync and --sync-ignored together")
+	}
+
+	// Validate --no-* flag conflicts
+	if flagAddOpen && flagNoOpen {
+		return fmt.Errorf("cannot use --open and --no-open together")
+	}
+	if flagSyncAll && flagNoSync {
+		return fmt.Errorf("cannot use --sync and --no-sync together")
+	}
+	if flagSyncIgnored && flagNoSyncIgnored {
+		return fmt.Errorf("cannot use --sync-ignored and --no-sync-ignored together")
 	}
 
 	// Merge config with flags (flags take precedence)
@@ -93,7 +112,21 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("sync-ignored") {
 		syncIgnoredFlagPtr = &flagSyncIgnored
 	}
-	mergedConfig := globalConfig.MergeWithFlags(openFlagPtr, editorFlagPtr, nil, nil, nil, syncFlagPtr, syncIgnoredFlagPtr)
+	mergedConfig := globalConfig.MergeWithFlags(
+		openFlagPtr,
+		editorFlagPtr,
+		nil,
+		nil,
+		nil,
+		syncFlagPtr,
+		syncIgnoredFlagPtr,
+		flagNoOpen,
+		flagNoSync,
+		flagNoSyncIgnored,
+		false,
+		false,
+		false,
+	)
 
 	// Validate config
 	if err := mergedConfig.Validate(); err != nil {

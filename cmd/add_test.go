@@ -69,3 +69,24 @@ func TestAddCmd_EditorFlag(t *testing.T) {
 		t.Errorf("editor flag shorthand = %q, want %q", flag.Shorthand, "e")
 	}
 }
+
+func TestAddCmd_NoOpenFlag(t *testing.T) {
+	flag := addCmd.Flags().Lookup("no-open")
+	if flag == nil {
+		t.Fatal("Expected 'no-open' flag to be defined")
+	}
+}
+
+func TestAddCmd_NoSyncFlag(t *testing.T) {
+	flag := addCmd.Flags().Lookup("no-sync")
+	if flag == nil {
+		t.Fatal("Expected 'no-sync' flag to be defined")
+	}
+}
+
+func TestAddCmd_NoSyncIgnoredFlag(t *testing.T) {
+	flag := addCmd.Flags().Lookup("no-sync-ignored")
+	if flag == nil {
+		t.Fatal("Expected 'no-sync-ignored' flag to be defined")
+	}
+}
