@@ -15,6 +15,9 @@ import (
 var closeConfig = struct {
 	PrintPath bool
 	Yes       bool
+	Force     bool
+	NoYes     bool
+	NoForce   bool
 }{}
 
 var closeCmd = &cobra.Command{
@@ -38,6 +41,9 @@ Examples:
 func init() {
 	closeCmd.Flags().BoolVar(&closeConfig.PrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
 	closeCmd.Flags().BoolVarP(&closeConfig.Yes, "yes", "y", false, "Automatically confirm worktree deletion (used by shell wrapper)")
+	closeCmd.Flags().BoolVar(&closeConfig.Force, "force", false, "Alias for --yes")
+	closeCmd.Flags().BoolVar(&closeConfig.NoYes, "no-yes", false, "Force disable automatic confirmation (overrides config and --yes)")
+	closeCmd.Flags().BoolVar(&closeConfig.NoForce, "no-force", false, "Alias for --no-yes")
 	rootCmd.AddCommand(closeCmd)
 }
 
@@ -45,12 +51,33 @@ func runClose(cmd *cobra.Command, args []string) error {
 	// Load configuration
 	cfg := config.LoadOrDefault()
 
+	// Validate flag conflicts
+	if (closeConfig.Yes || closeConfig.Force) && (closeConfig.NoYes || closeConfig.NoForce) {
+		return fmt.Errorf("cannot use --yes/--force and --no-yes/--no-force together")
+	}
+
 	// Merge with command-line flags (flags take precedence)
 	var yesFlagPtr *bool
-	if cmd.Flags().Changed("yes") {
-		yesFlagPtr = &closeConfig.Yes
+	if cmd.Flags().Changed("yes") || cmd.Flags().Changed("force") {
+		yesValue := closeConfig.Yes || closeConfig.Force
+		yesFlagPtr = &yesValue
 	}
-	mergedConfig := cfg.MergeWithFlags(nil, nil, yesFlagPtr, nil, nil, nil, nil)
+	noYesValue := closeConfig.NoYes || closeConfig.NoForce
+	mergedConfig := cfg.MergeWithFlags(
+		nil,
+		nil,
+		yesFlagPtr,
+		nil,
+		nil,
+		nil,
+		nil,
+		false,
+		false,
+		false,
+		noYesValue,
+		false,
+		false,
+	)
 
 	// Get current directory
 	cwd, err := os.Getwd()

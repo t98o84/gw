@@ -53,3 +53,9 @@ editor: code
 #   This will use vim instead of the configured editor
 #   gw close -y  # This will override close.force setting
 #   gw rm -y     # This will override rm.force setting
+#
+# --no-* flags have the highest priority and will force the value to false:
+#   gw add --open --no-open feature/test  # Error: cannot use both flags together
+#   gw add --no-open feature/test          # Will NOT open even if config.add.open is true
+#   gw close --no-yes                      # Will NOT auto-confirm even if config.close.force is true
+#   gw rm --no-branch feature/test         # Will NOT delete branch even if config.rm.branch is true

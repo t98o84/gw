@@ -12,8 +12,12 @@ import (
 )
 
 var rmConfig = struct {
-	Force  bool
-	Branch bool
+	Force    bool
+	Yes      bool
+	Branch   bool
+	NoYes    bool
+	NoForce  bool
+	NoBranch bool
 }{}
 
 var rmCmd = &cobra.Command{
@@ -40,8 +44,12 @@ Examples:
 
 func init() {
 	rmCmd.Flags().BoolVarP(&rmConfig.Force, "force", "f", false, "Force removal even if worktree is dirty")
-	rmCmd.Flags().BoolVarP(&rmConfig.Force, "yes", "y", false, "Skip confirmation prompt (alias for --force)")
+	rmCmd.Flags().BoolVarP(&rmConfig.Yes, "yes", "y", false, "Skip confirmation prompt (alias for --force)")
 	rmCmd.Flags().BoolVarP(&rmConfig.Branch, "branch", "b", false, "Also delete the associated git branch")
+	// Negation flags
+	rmCmd.Flags().BoolVar(&rmConfig.NoYes, "no-yes", false, "Force disable automatic confirmation (overrides config and --yes)")
+	rmCmd.Flags().BoolVar(&rmConfig.NoForce, "no-force", false, "Alias for --no-yes")
+	rmCmd.Flags().BoolVar(&rmConfig.NoBranch, "no-branch", false, "Force disable branch deletion (overrides config and --branch)")
 	rootCmd.AddCommand(rmCmd)
 }
 
@@ -49,16 +57,40 @@ func runRm(cmd *cobra.Command, args []string) error {
 	// Load configuration
 	cfg := config.LoadOrDefault()
 
+	// Validate flag conflicts
+	if (rmConfig.Force || rmConfig.Yes) && (rmConfig.NoYes || rmConfig.NoForce) {
+		return fmt.Errorf("cannot use --yes/--force and --no-yes/--no-force together")
+	}
+	if rmConfig.Branch && rmConfig.NoBranch {
+		return fmt.Errorf("cannot use --branch and --no-branch together")
+	}
+
 	// Merge with command-line flags (flags take precedence)
 	var forceFlagPtr *bool
 	if cmd.Flags().Changed("force") || cmd.Flags().Changed("yes") {
-		forceFlagPtr = &rmConfig.Force
+		forceValue := rmConfig.Force || rmConfig.Yes
+		forceFlagPtr = &forceValue
 	}
 	var branchFlagPtr *bool
 	if cmd.Flags().Changed("branch") {
 		branchFlagPtr = &rmConfig.Branch
 	}
-	mergedConfig := cfg.MergeWithFlags(nil, nil, nil, forceFlagPtr, branchFlagPtr, nil, nil)
+	noYesValue := rmConfig.NoYes || rmConfig.NoForce
+	mergedConfig := cfg.MergeWithFlags(
+		nil,
+		nil,
+		nil,
+		forceFlagPtr,
+		branchFlagPtr,
+		nil,
+		nil,
+		false,
+		false,
+		false,
+		false,
+		noYesValue,
+		rmConfig.NoBranch,
+	)
 
 	var worktrees []*git.Worktree
 

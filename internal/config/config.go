@@ -53,7 +53,23 @@ func (c *Config) Validate() error {
 
 // MergeWithFlags merges the configuration with command-line flags.
 // Flags take precedence over config file values.
-func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag *bool, rmYesFlag *bool, rmBranchFlag *bool, syncFlag *bool, syncIgnoredFlag *bool) *Config {
+// The --no-* flags have the highest priority and will force the value to false.
+// Processing order: config values → normal flags → --no-* flags (highest priority)
+func (c *Config) MergeWithFlags(
+	openFlag *bool,
+	editorFlag *string,
+	closeYesFlag *bool,
+	rmYesFlag *bool,
+	rmBranchFlag *bool,
+	syncFlag *bool,
+	syncIgnoredFlag *bool,
+	noOpenFlag bool,
+	noSyncFlag bool,
+	noSyncIgnoredFlag bool,
+	closeNoYesFlag bool,
+	rmNoYesFlag bool,
+	rmNoBranchFlag bool,
+) *Config {
 	merged := &Config{
 		Add:    c.Add,
 		Close:  c.Close,
@@ -61,6 +77,7 @@ func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag
 		Editor: c.Editor,
 	}
 
+	// Apply normal flags
 	if openFlag != nil {
 		merged.Add.Open = *openFlag
 	}
@@ -87,6 +104,31 @@ func (c *Config) MergeWithFlags(openFlag *bool, editorFlag *string, closeYesFlag
 
 	if rmBranchFlag != nil {
 		merged.Rm.Branch = *rmBranchFlag
+	}
+
+	// Apply --no-* flags (highest priority)
+	if noOpenFlag {
+		merged.Add.Open = false
+	}
+
+	if noSyncFlag {
+		merged.Add.Sync = false
+	}
+
+	if noSyncIgnoredFlag {
+		merged.Add.SyncIgnored = false
+	}
+
+	if closeNoYesFlag {
+		merged.Close.Force = false
+	}
+
+	if rmNoYesFlag {
+		merged.Rm.Force = false
+	}
+
+	if rmNoBranchFlag {
+		merged.Rm.Branch = false
 	}
 
 	return merged
