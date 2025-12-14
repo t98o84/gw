@@ -187,12 +187,12 @@ func TestCommandExecutionError(t *testing.T) {
 			Stderr: []byte("fatal: not a git repository"),
 		}
 		err := NewCommandExecutionError("git", []string{"status"}, exitErr)
-		
+
 		// Check that stderr is captured
 		if err.Stderr != "fatal: not a git repository" {
 			t.Errorf("Expected stderr to be captured, got %q", err.Stderr)
 		}
-		
+
 		// Check that error message includes stderr
 		errorMsg := err.Error()
 		expectedMsg := "command execution failed: git [status]\nfatal: not a git repository"
@@ -207,7 +207,7 @@ func TestCommandExecutionError(t *testing.T) {
 			Stderr: []byte("\n  error message  \n"),
 		}
 		err := NewCommandExecutionError("git", []string{"status"}, exitErr)
-		
+
 		// Check that error message has trimmed stderr
 		errorMsg := err.Error()
 		expectedMsg := "command execution failed: git [status]\nerror message"
@@ -220,12 +220,12 @@ func TestCommandExecutionError(t *testing.T) {
 		// Regular error (not ExitError)
 		regularErr := errors.New("some error")
 		err := NewCommandExecutionError("git", []string{"status"}, regularErr)
-		
+
 		// Check that stderr is empty
 		if err.Stderr != "" {
 			t.Errorf("Expected stderr to be empty, got %q", err.Stderr)
 		}
-		
+
 		// Check that error message includes the error
 		errorMsg := err.Error()
 		expectedMsg := "command execution failed: git [status]: some error"
