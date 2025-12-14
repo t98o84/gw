@@ -9,8 +9,8 @@ func TestSwCmd(t *testing.T) {
 		t.Fatal("swCmd should not be nil")
 	}
 
-	if swCmd.Use != "sw [name]" {
-		t.Errorf("swCmd.Use = %q, want %q", swCmd.Use, "sw [name]")
+	if swCmd.Use != "sw [flags] [name]" {
+		t.Errorf("swCmd.Use = %q, want %q", swCmd.Use, "sw [flags] [name]")
 	}
 }
 

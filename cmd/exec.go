@@ -11,7 +11,7 @@ import (
 )
 
 var execCmd = &cobra.Command{
-	Use:     "exec <name> <command...>",
+	Use:     "exec [flags] [name] <command...>",
 	Aliases: []string{"e"},
 	Short:   "Execute a command in a worktree",
 	Long: `Execute a command in the specified worktree directory.

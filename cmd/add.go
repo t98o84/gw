@@ -27,7 +27,7 @@ var (
 )
 
 var addCmd = &cobra.Command{
-	Use:     "add <branch>",
+	Use:     "add [flags] [branch]",
 	Aliases: []string{"a"},
 	Short:   "Create a new worktree",
 	Long: `Create a new worktree for the specified branch.

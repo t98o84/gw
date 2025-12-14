@@ -9,8 +9,8 @@ func TestExecCmd(t *testing.T) {
 		t.Fatal("execCmd should not be nil")
 	}
 
-	if execCmd.Use != "exec <name> <command...>" {
-		t.Errorf("execCmd.Use = %q, want %q", execCmd.Use, "exec <name> <command...>")
+	if execCmd.Use != "exec [flags] [name] <command...>" {
+		t.Errorf("execCmd.Use = %q, want %q", execCmd.Use, "exec [flags] [name] <command...>")
 	}
 }
 

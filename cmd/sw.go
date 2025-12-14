@@ -12,7 +12,7 @@ import (
 var swConfig = NewConfig()
 
 var swCmd = &cobra.Command{
-	Use:     "sw [name]",
+	Use:     "sw [flags] [name]",
 	Aliases: []string{"s"},
 	Short:   "Switch to a worktree directory",
 	Long: `Switch to a worktree directory.

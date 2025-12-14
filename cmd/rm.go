@@ -21,7 +21,7 @@ var rmConfig = struct {
 }{}
 
 var rmCmd = &cobra.Command{
-	Use:     "rm [name...]",
+	Use:     "rm [flags] [name...]",
 	Aliases: []string{"r"},
 	Short:   "Remove worktrees",
 	Long: `Remove one or more worktrees by name.

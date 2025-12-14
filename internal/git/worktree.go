@@ -136,11 +136,9 @@ func List() ([]Worktree, error) {
 func (m *Manager) Add(path string, branch string, createBranch bool) error {
 	args := []string{"worktree", "add"}
 	if createBranch {
-		args = append(args, "-b", branch)
-	}
-	args = append(args, path)
-	if !createBranch {
-		args = append(args, branch)
+		args = append(args, "-b", branch, path)
+	} else {
+		args = append(args, path, branch)
 	}
 
 	_, err := m.executor.Execute("git", args...)
