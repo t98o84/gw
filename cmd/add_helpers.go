@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/fzf"
@@ -183,12 +182,7 @@ func syncFiles(wtPath string, mode syncMode) error {
 
 // getMainWorktreePath returns the path of the main worktree
 func getMainWorktreePath() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get repository root: %w", err)
-	}
-	return strings.TrimSpace(string(out)), nil
+	return git.GetMainWorktreePath()
 }
 
 // syncAllDiffs syncs all files with differences between main worktree and HEAD
@@ -196,36 +190,13 @@ func syncAllDiffs(mainWtPath, newWtPath string) error {
 	fmt.Println("Syncing all changed files...")
 
 	// Get all modified, untracked, and staged files
-	cmd := exec.Command("git", "-C", mainWtPath, "status", "--porcelain")
-	out, err := cmd.Output()
+	files, err := git.GetChangedFiles(mainWtPath)
 	if err != nil {
-		return fmt.Errorf("failed to get git status: %w", err)
+		return err
 	}
 
-	lines := strings.Split(string(out), "\n")
 	copiedCount := 0
-
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-
-		// Parse git status output
-		if len(line) < 4 {
-			continue
-		}
-
-		filePath := strings.TrimSpace(line[3:])
-		if filePath == "" {
-			continue
-		}
-
-		// Handle renamed files (e.g., "R  old.txt -> new.txt")
-		if strings.Contains(filePath, " -> ") {
-			parts := strings.Split(filePath, " -> ")
-			filePath = strings.TrimSpace(parts[1])
-		}
-
+	for _, filePath := range files {
 		srcPath := filepath.Join(mainWtPath, filePath)
 		dstPath := filepath.Join(newWtPath, filePath)
 
@@ -249,22 +220,14 @@ func syncAllDiffs(mainWtPath, newWtPath string) error {
 func syncIgnoredFiles(mainWtPath, newWtPath string) error {
 	fmt.Println("Syncing gitignored files...")
 
-	// Get list of gitignored files
-	cmd := exec.Command("git", "-C", mainWtPath, "ls-files", "--others", "--ignored", "--exclude-standard")
-	out, err := cmd.Output()
+	// Get list of all ignored files (including those in global gitignore)
+	files, err := git.GetIgnoredFiles(mainWtPath)
 	if err != nil {
-		return fmt.Errorf("failed to list ignored files: %w", err)
+		return err
 	}
 
-	lines := strings.Split(string(out), "\n")
 	copiedCount := 0
-
-	for _, line := range lines {
-		filePath := strings.TrimSpace(line)
-		if filePath == "" {
-			continue
-		}
-
+	for _, filePath := range files {
 		srcPath := filepath.Join(mainWtPath, filePath)
 		dstPath := filepath.Join(newWtPath, filePath)
 
