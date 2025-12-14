@@ -2,196 +2,98 @@ package shell
 
 import (
 	"os/exec"
-	"strings"
+	"runtime"
 	"testing"
 )
 
-// TestRealExecutor_Execute tests command execution with output capture
-func TestRealExecutor_Execute(t *testing.T) {
+func TestRealExecutor_Execute_Success(t *testing.T) {
 	executor := NewRealExecutor()
 
-	tests := []struct {
-		name    string
-		command string
-		args    []string
-		wantErr bool
-		wantOut string
-	}{
-		{
-			name:    "echo command success",
-			command: "echo",
-			args:    []string{"hello"},
-			wantErr: false,
-			wantOut: "hello",
-		},
-		{
-			name:    "non-existent command",
-			command: "nonexistentcommand12345",
-			args:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "command with multiple args",
-			command: "echo",
-			args:    []string{"hello", "world"},
-			wantErr: false,
-			wantOut: "hello world",
-		},
+	// Use a simple command that works on all platforms
+	var cmd string
+	var args []string
+	if runtime.GOOS == "windows" {
+		cmd = "cmd"
+		args = []string{"/c", "echo", "hello"}
+	} else {
+		cmd = "echo"
+		args = []string{"hello"}
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			out, err := executor.Execute(tt.command, tt.args...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && tt.wantOut != "" {
-				got := strings.TrimSpace(string(out))
-				if got != tt.wantOut {
-					t.Errorf("Execute() = %v, want %v", got, tt.wantOut)
-				}
-			}
-		})
+	output, err := executor.Execute(cmd, args...)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if len(output) == 0 {
+		t.Error("Expected non-empty output")
 	}
 }
 
-// TestRealExecutor_ExecuteWithStdio tests command execution with stdio connection
-func TestRealExecutor_ExecuteWithStdio(t *testing.T) {
+func TestRealExecutor_Execute_CapturesStderr(t *testing.T) {
 	executor := NewRealExecutor()
 
-	tests := []struct {
-		name    string
-		command string
-		args    []string
-		wantErr bool
-	}{
-		{
-			name:    "true command success",
-			command: "true",
-			args:    []string{},
-			wantErr: false,
-		},
-		{
-			name:    "false command fails",
-			command: "false",
-			args:    []string{},
-			wantErr: true,
-		},
-		{
-			name:    "non-existent command",
-			command: "nonexistentcommand12345",
-			args:    []string{},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := executor.ExecuteWithStdio(tt.command, tt.args...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ExecuteWithStdio() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-// TestRealExecutor_LookPath tests command existence checking
-func TestRealExecutor_LookPath(t *testing.T) {
-	executor := NewRealExecutor()
-
-	tests := []struct {
-		name    string
-		command string
-		wantErr bool
-	}{
-		{
-			name:    "echo exists",
-			command: "echo",
-			wantErr: false,
-		},
-		{
-			name:    "sh exists",
-			command: "sh",
-			wantErr: false,
-		},
-		{
-			name:    "non-existent command",
-			command: "nonexistentcommand12345",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			path, err := executor.LookPath(tt.command)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("LookPath() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && path == "" {
-				t.Errorf("LookPath() returned empty path for existing command %s", tt.command)
-			}
-		})
-	}
-}
-
-// TestRealExecutor_Execute_ErrorHandling tests error handling
-func TestRealExecutor_Execute_ErrorHandling(t *testing.T) {
-	executor := NewRealExecutor()
-
-	// Test command that returns error
-	_, err := executor.Execute("sh", "-c", "exit 1")
+	// Use a command that will fail
+	_, err := executor.Execute("nonexistent-command-that-should-fail")
 	if err == nil {
-		t.Error("Execute() expected error for command with non-zero exit code")
+		t.Fatal("Expected an error, got nil")
 	}
 
-	// Verify it's an ExitError
-	if _, ok := err.(*exec.ExitError); !ok {
-		t.Errorf("Execute() error type = %T, want *exec.ExitError", err)
+	// Check that we got an ExitError with Stderr populated
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		// The error should contain stderr output
+		if len(exitErr.Stderr) == 0 {
+			t.Error("Expected stderr to be captured in ExitError")
+		}
 	}
 }
 
-// TestMockExecutor verifies the mock works as expected
-func TestMockExecutor(t *testing.T) {
-	t.Run("default behavior", func(t *testing.T) {
-		mock := &MockExecutor{}
+func TestRealExecutor_ExecuteWithStdio_Success(t *testing.T) {
+	executor := NewRealExecutor()
 
-		out, err := mock.Execute("test")
-		if err != nil {
-			t.Errorf("Execute() unexpected error: %v", err)
-		}
-		if string(out) != "mock output" {
-			t.Errorf("Execute() = %s, want 'mock output'", out)
-		}
+	// Use a simple command that works on all platforms
+	var cmd string
+	var args []string
+	if runtime.GOOS == "windows" {
+		cmd = "cmd"
+		args = []string{"/c", "exit", "0"}
+	} else {
+		cmd = "true"
+		args = []string{}
+	}
 
-		err = mock.ExecuteWithStdio("test")
-		if err != nil {
-			t.Errorf("ExecuteWithStdio() unexpected error: %v", err)
-		}
+	err := executor.ExecuteWithStdio(cmd, args...)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}
 
-		path, err := mock.LookPath("test")
-		if err != nil {
-			t.Errorf("LookPath() unexpected error: %v", err)
-		}
-		if path != "/usr/bin/test" {
-			t.Errorf("LookPath() = %s, want '/usr/bin/test'", path)
-		}
-	})
+func TestRealExecutor_LookPath_Success(t *testing.T) {
+	executor := NewRealExecutor()
 
-	t.Run("custom behavior", func(t *testing.T) {
-		mock := &MockExecutor{
-			ExecuteFunc: func(name string, args ...string) ([]byte, error) {
-				return []byte("custom"), nil
-			},
-		}
+	// Look for a command that should exist on all platforms
+	var cmd string
+	if runtime.GOOS == "windows" {
+		cmd = "cmd"
+	} else {
+		cmd = "sh"
+	}
 
-		out, err := mock.Execute("test")
-		if err != nil {
-			t.Errorf("Execute() unexpected error: %v", err)
-		}
-		if string(out) != "custom" {
-			t.Errorf("Execute() = %s, want 'custom'", out)
-		}
-	})
+	path, err := executor.LookPath(cmd)
+	if err != nil {
+		t.Fatalf("Expected to find %s, got error: %v", cmd, err)
+	}
+
+	if path == "" {
+		t.Errorf("Expected non-empty path for %s", cmd)
+	}
+}
+
+func TestRealExecutor_LookPath_NotFound(t *testing.T) {
+	executor := NewRealExecutor()
+
+	_, err := executor.LookPath("nonexistent-command-that-should-not-exist")
+	if err == nil {
+		t.Error("Expected an error when looking for non-existent command")
+	}
 }

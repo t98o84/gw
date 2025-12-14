@@ -7,7 +7,7 @@ import (
 
 // Executor abstracts shell command execution
 type Executor interface {
-	// Execute runs a command and returns its standard output
+	// Execute runs a command and returns its combined standard output and standard error
 	Execute(name string, args ...string) ([]byte, error)
 
 	// ExecuteWithStdio runs a command with connected standard I/O
@@ -25,10 +25,10 @@ func NewRealExecutor() *RealExecutor {
 	return &RealExecutor{}
 }
 
-// Execute runs a command and returns its output
+// Execute runs a command and returns its combined output (stdout and stderr)
 func (e *RealExecutor) Execute(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
-	return cmd.Output()
+	return cmd.CombinedOutput()
 }
 
 // ExecuteWithStdio runs a command with connected standard I/O
