@@ -143,7 +143,7 @@ func TestGitHubAPIError(t *testing.T) {
 func TestCommandExecutionError(t *testing.T) {
 	t.Run("error message with args", func(t *testing.T) {
 		wrappedErr := errors.New("exit status 1")
-		err := NewCommandExecutionError("git", []string{"branch", "-a"}, wrappedErr)
+		err := NewCommandExecutionError("git", []string{"branch", "-a"}, nil, wrappedErr)
 		expected := "command execution failed: git [branch -a]: exit status 1"
 		if err.Error() != expected {
 			t.Errorf("Expected %q, got %q", expected, err.Error())
@@ -152,7 +152,7 @@ func TestCommandExecutionError(t *testing.T) {
 
 	t.Run("error message without args", func(t *testing.T) {
 		wrappedErr := errors.New("command not found")
-		err := NewCommandExecutionError("fzf", []string{}, wrappedErr)
+		err := NewCommandExecutionError("fzf", []string{}, nil, wrappedErr)
 		expected := "command execution failed: fzf: command not found"
 		if err.Error() != expected {
 			t.Errorf("Expected %q, got %q", expected, err.Error())
@@ -161,39 +161,38 @@ func TestCommandExecutionError(t *testing.T) {
 
 	t.Run("unwrap returns wrapped error", func(t *testing.T) {
 		wrappedErr := errors.New("wrapped")
-		err := NewCommandExecutionError("git", []string{"status"}, wrappedErr)
+		err := NewCommandExecutionError("git", []string{"status"}, nil, wrappedErr)
 		if err.Unwrap() != wrappedErr {
 			t.Error("Unwrap() should return the wrapped error")
 		}
 	})
 
 	t.Run("Is() method works correctly", func(t *testing.T) {
-		err := NewCommandExecutionError("git", []string{}, nil)
+		err := NewCommandExecutionError("git", []string{}, nil, nil)
 		if !err.Is(&CommandExecutionError{}) {
 			t.Error("Is() should return true for CommandExecutionError type")
 		}
 	})
 
 	t.Run("errors.Is() works with helper function", func(t *testing.T) {
-		err := NewCommandExecutionError("git", []string{}, nil)
+		err := NewCommandExecutionError("git", []string{}, nil, nil)
 		if !IsCommandExecutionError(err) {
 			t.Error("IsCommandExecutionError() should return true")
 		}
 	})
 
-	t.Run("error message with stderr from ExitError", func(t *testing.T) {
-		// Create a mock ExitError with stderr
-		exitErr := &exec.ExitError{
-			Stderr: []byte("fatal: not a git repository"),
-		}
-		err := NewCommandExecutionError("git", []string{"status"}, exitErr)
+	t.Run("error message with output", func(t *testing.T) {
+		// Create a mock ExitError
+		exitErr := &exec.ExitError{}
+		output := []byte("fatal: not a git repository")
+		err := NewCommandExecutionError("git", []string{"status"}, output, exitErr)
 
-		// Check that stderr is captured
-		if err.Stderr != "fatal: not a git repository" {
-			t.Errorf("Expected stderr to be captured, got %q", err.Stderr)
+		// Check that output is captured
+		if err.Output != "fatal: not a git repository" {
+			t.Errorf("Expected output to be captured, got %q", err.Output)
 		}
 
-		// Check that error message includes stderr
+		// Check that error message includes output
 		errorMsg := err.Error()
 		expectedMsg := "command execution failed: git [status]\nfatal: not a git repository"
 		if errorMsg != expectedMsg {
@@ -201,14 +200,13 @@ func TestCommandExecutionError(t *testing.T) {
 		}
 	})
 
-	t.Run("error message with stderr trimmed", func(t *testing.T) {
-		// Create a mock ExitError with stderr that has leading/trailing whitespace
-		exitErr := &exec.ExitError{
-			Stderr: []byte("\n  error message  \n"),
-		}
-		err := NewCommandExecutionError("git", []string{"status"}, exitErr)
+	t.Run("error message with output trimmed", func(t *testing.T) {
+		// Create a mock ExitError with output that has leading/trailing whitespace
+		exitErr := &exec.ExitError{}
+		output := []byte("\n  error message  \n")
+		err := NewCommandExecutionError("git", []string{"status"}, output, exitErr)
 
-		// Check that error message has trimmed stderr
+		// Check that error message has trimmed output
 		errorMsg := err.Error()
 		expectedMsg := "command execution failed: git [status]\nerror message"
 		if errorMsg != expectedMsg {
@@ -216,14 +214,14 @@ func TestCommandExecutionError(t *testing.T) {
 		}
 	})
 
-	t.Run("error message without ExitError", func(t *testing.T) {
+	t.Run("error message without output", func(t *testing.T) {
 		// Regular error (not ExitError)
 		regularErr := errors.New("some error")
-		err := NewCommandExecutionError("git", []string{"status"}, regularErr)
+		err := NewCommandExecutionError("git", []string{"status"}, nil, regularErr)
 
-		// Check that stderr is empty
-		if err.Stderr != "" {
-			t.Errorf("Expected stderr to be empty, got %q", err.Stderr)
+		// Check that output is empty
+		if err.Output != "" {
+			t.Errorf("Expected output to be empty, got %q", err.Output)
 		}
 
 		// Check that error message includes the error
@@ -288,7 +286,7 @@ func TestErrorTypeDiscrimination(t *testing.T) {
 		branchErr := NewBranchNotFoundError("main", nil)
 		worktreeErr := NewWorktreeExistsError("/path", "main", nil)
 		githubErr := NewGitHubAPIError("GetPR", 404, nil)
-		commandErr := NewCommandExecutionError("git", []string{}, nil)
+		commandErr := NewCommandExecutionError("git", []string{}, nil, nil)
 		inputErr := NewInvalidInputError("test", "reason", nil)
 
 		if IsBranchNotFoundError(worktreeErr) {
@@ -367,7 +365,7 @@ func TestErrorFieldAccess(t *testing.T) {
 	})
 
 	t.Run("CommandExecutionError fields are accessible", func(t *testing.T) {
-		err := NewCommandExecutionError("git", []string{"branch", "-a"}, nil)
+		err := NewCommandExecutionError("git", []string{"branch", "-a"}, nil, nil)
 		if err.Command != "git" {
 			t.Errorf("Expected command to be 'git', got %q", err.Command)
 		}

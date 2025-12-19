@@ -141,9 +141,9 @@ func (m *Manager) Add(path string, branch string, createBranch bool) error {
 		args = append(args, path, branch)
 	}
 
-	_, err := m.executor.Execute("git", args...)
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return errors.NewCommandExecutionError("git", args, err)
+		return errors.NewCommandExecutionError("git", args, out, err)
 	}
 	return nil
 }
@@ -161,9 +161,9 @@ func (m *Manager) Remove(path string, force bool) error {
 	}
 	args = append(args, path)
 
-	_, err := m.executor.Execute("git", args...)
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return errors.NewCommandExecutionError("git", args, err)
+		return errors.NewCommandExecutionError("git", args, out, err)
 	}
 	return nil
 }
@@ -231,9 +231,9 @@ func RemoteBranchExists(branch string) (bool, error) {
 // FetchBranch fetches a branch from origin
 func (m *Manager) FetchBranch(branch string) error {
 	args := []string{"fetch", "origin", branch + ":" + branch}
-	_, err := m.executor.Execute("git", args...)
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return errors.NewCommandExecutionError("git", args, err)
+		return errors.NewCommandExecutionError("git", args, out, err)
 	}
 	return nil
 }
@@ -298,7 +298,7 @@ func (m *Manager) GetCurrentBranch() (string, error) {
 	args := []string{"rev-parse", "--abbrev-ref", "HEAD"}
 	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return "", errors.NewCommandExecutionError("git", args, err)
+		return "", errors.NewCommandExecutionError("git", args, out, err)
 	}
 	return strings.TrimSpace(string(out)), nil
 }
@@ -313,7 +313,7 @@ func (m *Manager) IsBranchMerged(branch string) (bool, error) {
 	args := []string{"branch", "--merged", "HEAD", "--format=%(refname:short)"}
 	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return false, errors.NewCommandExecutionError("git", args, err)
+		return false, errors.NewCommandExecutionError("git", args, out, err)
 	}
 
 	mergedBranches := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -340,9 +340,9 @@ func (m *Manager) DeleteBranch(branchName string, force bool) error {
 	}
 	args = append(args, branchName)
 
-	_, err := m.executor.Execute("git", args...)
+	out, err := m.executor.Execute("git", args...)
 	if err != nil {
-		return errors.NewCommandExecutionError("git", args, err)
+		return errors.NewCommandExecutionError("git", args, out, err)
 	}
 	return nil
 }

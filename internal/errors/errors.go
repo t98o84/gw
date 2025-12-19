@@ -3,7 +3,6 @@ package errors
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 )
 
@@ -94,7 +93,7 @@ func NewGitHubAPIError(operation string, status int, err error) *GitHubAPIError 
 type CommandExecutionError struct {
 	Command string
 	Args    []string
-	Stderr  string
+	Output  string // Combined stdout and stderr output
 	Err     error
 }
 
@@ -107,8 +106,8 @@ func (e *CommandExecutionError) Error() string {
 		sb.WriteString(fmt.Sprintf("command execution failed: %s", e.Command))
 	}
 
-	if e.Stderr != "" {
-		sb.WriteString(fmt.Sprintf("\n%s", strings.TrimSpace(e.Stderr)))
+	if e.Output != "" {
+		sb.WriteString(fmt.Sprintf("\n%s", strings.TrimSpace(e.Output)))
 	} else if e.Err != nil {
 		sb.WriteString(fmt.Sprintf(": %v", e.Err))
 	}
@@ -125,18 +124,12 @@ func (e *CommandExecutionError) Is(target error) bool {
 	return ok
 }
 
-// NewCommandExecutionError creates a new CommandExecutionError
-func NewCommandExecutionError(command string, args []string, err error) *CommandExecutionError {
-	stderr := ""
-
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		stderr = string(exitErr.Stderr)
-	}
-
+// NewCommandExecutionError creates a new CommandExecutionError with output
+func NewCommandExecutionError(command string, args []string, output []byte, err error) *CommandExecutionError {
 	return &CommandExecutionError{
 		Command: command,
 		Args:    args,
-		Stderr:  stderr,
+		Output:  string(output),
 		Err:     err,
 	}
 }

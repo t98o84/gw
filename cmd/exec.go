@@ -76,7 +76,7 @@ func runExec(cmd *cobra.Command, args []string) error {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			os.Exit(exitErr.ExitCode())
 		}
-		return errors.NewCommandExecutionError(command[0], command[1:], err)
+		return errors.NewCommandExecutionError(command[0], command[1:], nil, err)
 	}
 
 	return nil

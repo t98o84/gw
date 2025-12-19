@@ -74,7 +74,7 @@ func getRemoteOwnerRepo() (string, string, error) {
 func getRemoteOwnerRepoWithExecutor(executor shell.Executor) (string, string, error) {
 	out, err := executor.Execute("git", "remote", "get-url", "origin")
 	if err != nil {
-		return "", "", errors.NewCommandExecutionError("git", []string{"remote", "get-url", "origin"}, err)
+		return "", "", errors.NewCommandExecutionError("git", []string{"remote", "get-url", "origin"}, out, err)
 	}
 
 	url := strings.TrimSpace(string(out))

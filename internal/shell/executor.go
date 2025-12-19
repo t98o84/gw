@@ -8,6 +8,7 @@ import (
 // Executor abstracts shell command execution
 type Executor interface {
 	// Execute runs a command and returns its combined standard output and standard error
+	// If the command fails, the output is still returned along with the error
 	Execute(name string, args ...string) ([]byte, error)
 
 	// ExecuteWithStdio runs a command with connected standard I/O
