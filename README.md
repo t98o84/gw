@@ -95,15 +95,24 @@ gw init fish | source
 ```yaml
 add:
   open: true  # ワークツリー作成後に自動的にエディターで開く
+  sync: false  # メインワークツリーからファイルを同期する
+  sync_ignored: false  # gitignored ファイルも同期する
 rm:
   branch: false  # ワークツリー削除時にブランチも削除する
+  force: false  # 確認プロンプトをスキップする
+close:
+  force: false  # 確認プロンプトをスキップする
 editor: code  # 使用するエディターコマンド
 ```
 
 #### 設定項目
 
 - `add.open` (boolean): ワークツリー作成後に自動的にエディターで開くかどうか（デフォルト: `false`）
+- `add.sync` (boolean): メインワークツリーからファイルを同期するかどうか（デフォルト: `false`）
+- `add.sync_ignored` (boolean): gitignored ファイルも同期するかどうか（デフォルト: `false`）
 - `rm.branch` (boolean): ワークツリー削除時に関連するブランチも削除するかどうか（デフォルト: `false`）
+- `rm.force` (boolean): 削除時の確認プロンプトをスキップするかどうか（デフォルト: `false`）
+- `close.force` (boolean): 閉じるときの確認プロンプトをスキップするかどうか（デフォルト: `false`）
 - `editor` (string): 使用するエディターコマンド（例: `code`, `vim`, `emacs`）
 
 **注意**: フラグの優先順位は以下の通りです：`--no-*` フラグ > 通常フラグ > 設定ファイル
@@ -162,9 +171,16 @@ gw add --pr 123 --open -e vim
 
 ```bash
 gw ls
-# ex-repo (main)
-# ex-repo-feature-hoge
-# ex-repo-fix-foo
+# 出力形式: <ディレクトリ名>\t<ブランチ名>\t<コミットハッシュ>\t<メインマーカー>
+# ex-repo	main	a1b2c3d	(main)
+# ex-repo-feature-hoge	feature/hoge	b4e5f6c
+# ex-repo-fix-foo	fix/foo	c7d8e9f
+
+# フルパスのみ出力
+gw ls -p
+# /path/to/ex-repo
+# /path/to/ex-repo-feature-hoge
+# /path/to/ex-repo-fix-foo
 ```
 
 ### ワークツリーの削除
@@ -175,12 +191,18 @@ gw rm feature/hoge
 gw rm feature-hoge
 gw rm ex-repo-feature-hoge
 
+# 複数のワークツリーを一度に削除
+gw rm feature/hoge feature/fuga fix/foo
+
 # ブランチも一緒に削除（-b/--branch オプション）
 gw rm -b feature/hoge
 gw rm --branch feature-hoge
 
 # 強制削除（マージされていないブランチも削除）
 gw rm -f -b feature/hoge
+
+# 引数なしで fzf でインタラクティブに選択（Tab で複数選択可能）
+gw rm
 ```
 
 **注意**: ブランチ削除には以下の安全性チェックが適用されます：
@@ -193,6 +215,9 @@ gw rm -f -b feature/hoge
 ```bash
 gw exec feature/hoge git status
 gw exec feature-hoge npm install
+
+# ワークツリー名を省略すると fzf で選択
+gw exec git status
 ```
 
 ### ワークツリーへ移動
@@ -205,11 +230,35 @@ gw sw feature/hoge
 gw sw
 ```
 
+### 現在のワークツリーを閉じる
+
+```bash
+# 現在のワークツリーを閉じてメインワークツリーに戻る
+gw close
+
+# 確認プロンプトをスキップして閉じる
+gw close -y
+gw close --yes
+
+# ブランチも一緒に削除
+gw close -b
+gw close --branch
+
+# 強制的に閉じる（マージされていないブランチも削除）
+gw close -f -b
+```
+
+**注意**: `gw close` コマンドは：
+- メインワークツリー（`main` または `master`）からは実行できません
+- シェル統合が必要です（`gw init` のセットアップが必要）
+- 設定ファイルで `close.force=true` を設定すると確認プロンプトをスキップできます
+
 ## コマンド一覧
 
 | コマンド | エイリアス | 説明 |
 |---------|-----------|------|
 | `gw add <branch>` | `gw a` | ワークツリー作成 |
+| `gw add` | `gw a` | 引数なしで fzf によるブランチ選択 |
 | `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
 | `gw add --pr <url\|number>` | `gw a --pr`, `gw a -p` | PR ブランチのワークツリー作成 |
 | `gw add --open` | `gw a --open` | ワークツリー作成後にエディターで開く |
@@ -220,21 +269,28 @@ gw sw
 | `gw add --sync-ignored` | `gw a --sync-ignored` | gitignored ファイルも同期 |
 | `gw add --no-sync-ignored` | `gw a --no-sync-ignored` | 設定を無視して gitignored ファイルを同期しない |
 | `gw ls` | `gw l` | ワークツリー一覧表示 |
-| `gw rm <name>` | `gw r` | ワークツリー削除 |
+| `gw ls -p` | `gw l -p` | ワークツリーのフルパスのみ表示 |
+| `gw rm [name...]` | `gw r` | ワークツリー削除（引数なしまたは複数指定可能） |
+| `gw rm` | `gw r` | 引数なしで fzf による選択（Tab で複数選択可能） |
 | `gw rm -b <name>` | `gw r -b` | ワークツリーとブランチを削除 |
 | `gw rm --no-branch <name>` | `gw r --no-branch` | 設定を無視してブランチを削除しない |
 | `gw rm --yes/-y` | `gw r -y` | 確認プロンプトをスキップ |
 | `gw rm --no-yes/--no-force` | `gw r --no-yes` | 設定を無視して確認プロンプトを表示 |
-| `gw exec <name> <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行 |
+| `gw exec [name] <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行（引数なしで fzf） |
 | `gw sw [name]` | `gw s` | 対象ワークツリーに移動（引数なしで fzf） |
-| `gw fd` | `gw f` | fzf でワークツリー検索 |
+| `gw close [flags]` | `gw c` | 現在のワークツリーを閉じてメインに戻る |
+| `gw close -b` | `gw c -b` | ワークツリーとブランチを削除して閉じる |
+| `gw close -y/--yes` | `gw c -y` | 確認プロンプトをスキップして閉じる |
+| `gw close --no-yes/--no-force` | `gw c --no-yes` | 設定を無視して確認プロンプトを表示 |
+| `gw fd` | `gw f` | fzf でワークツリー検索（ブランチ名を出力） |
+| `gw fd -p` | `gw f -p` | fzf でワークツリー検索（フルパスを出力） |
 | `gw init <shell>` | `gw i` | シェル初期化スクリプト出力 |
 
 ## 必要なツール
 
 - `git`
-- `fzf` (オプション: インタラクティブ選択用)
-- `gh` または `GITHUB_TOKEN` 環境変数 (オプション: PR 連携用)
+- `fzf` (インタラクティブ選択用)
+- `gh` (PR 連携用)
 
 ## ライセンス
 
