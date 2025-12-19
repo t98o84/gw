@@ -17,7 +17,9 @@ var rootCmd = &cobra.Command{
 
 It provides easy commands to create, list, remove, and switch between worktrees
 with intuitive naming conventions and fzf integration.`,
-	Version: version,
+	Version:       version,
+	SilenceErrors: true,
+	SilenceUsage:  true,
 }
 
 // Execute runs the root command and handles any errors.
