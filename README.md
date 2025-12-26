@@ -1,5 +1,11 @@
 # gw - Git Worktree Wrapper
 
+[![CI](https://github.com/t98o84/gw/actions/workflows/ci.yaml/badge.svg)](https://github.com/t98o84/gw/actions/workflows/ci.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/t98o84/gw)](https://goreportcard.com/report/github.com/t98o84/gw)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/t98o84/gw)](https://github.com/t98o84/gw/blob/main/go.mod)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/github/v/release/t98o84/gw)](https://github.com/t98o84/gw/releases)
+
 A CLI tool for managing Git worktrees simply.
 
 ## Features
