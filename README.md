@@ -1,16 +1,16 @@
 # gw - Git Worktree Wrapper
 
-Git worktree をシンプルに管理するための CLI ツール。
+A CLI tool for managing Git worktrees simply.
 
-## 特徴
+## Features
 
-- 📁 直感的なワークツリー作成（`gw add feature/hoge` → `../repo-feature-hoge/`）
-- 🔀 ブランチ名、サフィックス、ディレクトリ名の柔軟な指定
-- 🐙 GitHub PR からのワークツリー作成
-- 🔍 fzf によるインタラクティブなワークツリー選択
-- 🚀 シェル統合によるスムーズなディレクトリ移動
+- 📁 Intuitive worktree creation (`gw add feature/hoge` → `../repo-feature-hoge/`)
+- 🔀 Flexible specification of branch names, suffixes, and directory names
+- 🐙 Worktree creation from GitHub PRs
+- 🔍 Interactive worktree selection with fzf
+- 🚀 Smooth directory navigation with shell integration
 
-## インストール
+## Installation
 
 ### Homebrew (macOS/Linux)
 
@@ -24,143 +24,143 @@ brew install t98o84/tap/gw
 go install github.com/t98o84/gw@latest
 ```
 
-### バイナリ
+### Binary
 
-[Releases](https://github.com/t98o84/gw/releases) からダウンロード。
+Download from [Releases](https://github.com/t98o84/gw/releases).
 
-### ソースからビルド
+### Build from Source
 
 ```bash
-# リポジトリをクローン
+# Clone the repository
 git clone https://github.com/t98o84/gw.git
 cd gw
 
-# Docker でビルド (macOS Apple Silicon)
+# Build with Docker (macOS Apple Silicon)
 docker compose run --rm dev sh -c "CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o gw ."
 
-# Docker でビルド (macOS Intel)
+# Build with Docker (macOS Intel)
 docker compose run --rm dev sh -c "CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o gw ."
 
-# Docker でビルド (Linux)
+# Build with Docker (Linux)
 docker compose run --rm dev go build -o gw .
 
-# パスの通った場所にコピー
+# Copy to a directory in PATH
 sudo cp gw /usr/local/bin/
-# または
+# or
 mkdir -p ~/.local/bin && cp gw ~/.local/bin/
 ```
 
-ローカルに Go がインストールされている場合：
+If Go is installed locally:
 
 ```bash
 go install github.com/t98o84/gw@latest
 ```
 
-## シェル統合のセットアップ
+## Shell Integration Setup
 
-`gw sw` でディレクトリ移動するために、シェル設定に以下を追加してください：
+To navigate directories with `gw sw`, add the following to your shell configuration:
 
 ### Bash
 
 ```bash
-# ~/.bashrc に追加
+# Add to ~/.bashrc
 eval "$(gw init bash)"
 ```
 
 ### Zsh
 
 ```bash
-# ~/.zshrc に追加
+# Add to ~/.zshrc
 eval "$(gw init zsh)"
 ```
 
 ### Fish
 
 ```fish
-# ~/.config/fish/config.fish に追加
+# Add to ~/.config/fish/config.fish
 gw init fish | source
 ```
 
-## 使い方
+## Usage
 
-### 設定ファイル
+### Configuration File
 
-`gw` は YAML 形式の設定ファイルをサポートしています。設定ファイルのパスは以下の通りです：
+`gw` supports YAML configuration files. The configuration file paths are:
 
-- **Linux/macOS**: `~/.config/gw/config.yaml` (または `$XDG_CONFIG_HOME/gw/config.yaml`)
+- **Linux/macOS**: `~/.config/gw/config.yaml` (or `$XDG_CONFIG_HOME/gw/config.yaml`)
 - **Windows**: `%APPDATA%\gw\config.yaml`
 
-### プロジェクト設定（フック機能）
+### Project Configuration (Hook Feature)
 
-プロジェクトルートに `gw.yaml` を配置することで、ワークツリーのライフサイクルに応じて自動実行されるフックを定義できます。
+You can define hooks that are automatically executed during the worktree lifecycle by placing `gw.yaml` in the project root.
 
-#### フックの種類
+#### Hook Types
 
-- **pre_add**: ワークツリー作成前に実行（検証、準備作業など）
-- **post_add**: ワークツリー作成後に実行（セットアップ、初期化など）
-- **pre_remove**: ワークツリー削除前に実行（バックアップ、クリーンアップなど）
-- **post_remove**: ワークツリー削除後に実行（通知、最終クリーンアップなど）
+- **pre_add**: Executed before worktree creation (validation, preparation, etc.)
+- **post_add**: Executed after worktree creation (setup, initialization, etc.)
+- **pre_remove**: Executed before worktree deletion (backup, cleanup, etc.)
+- **post_remove**: Executed after worktree deletion (notification, final cleanup, etc.)
 
-#### gw.yaml の例
+#### Example gw.yaml
 
 ```yaml
 hooks:
-  # ワークツリー作成前
+  # Before worktree creation
   pre_add:
-    # ブランチ名のバリデーション
+    # Branch name validation
     - command: |
         if ! echo "$GW_BRANCH" | grep -qE '^(feature|fix|hotfix)/'; then
           echo "Branch name must start with feature/, fix/, or hotfix/"
           exit 1
         fi
   
-  # ワークツリー作成後
+  # After worktree creation
   post_add:
-    # ファイルをコピー
+    # Copy files
     - command: cp .env.example .env
     
-    # コマンドを実行
+    # Execute commands
     - command: npm install
       env:
         NODE_ENV: development
     
-    # 複数のコマンドも可能
+    # Multiple commands are also possible
     - command: |
         bundle install
         rake db:migrate
     
-    # gw の環境変数を利用
+    # Use gw environment variables
     - command: echo "Setup complete for branch $GW_BRANCH"
   
-  # ワークツリー削除前
+  # Before worktree deletion
   pre_remove:
-    # データのバックアップ
+    # Backup data
     - command: |
         echo "Backing up data from $GW_WORKTREE_PATH"
         tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
   
-  # ワークツリー削除後
+  # After worktree deletion
   post_remove:
     - command: echo "Cleaned up worktree for $GW_BRANCH"
 ```
 
-#### コマンドの実行
+#### Command Execution
 
-すべてのフックは `command` フィールドでシェルコマンドを指定します。
+All hooks specify shell commands in the `command` field.
 
-**基本的なコマンド**
+#### Basic command
 ```yaml
 - command: npm install
 ```
 
-**環境変数を設定してコマンド実行**
+#### Execute command with environment variables
 ```yaml
 - command: npm install
   env:
     NODE_ENV: development
 ```
 
-**複数行のコマンド**
+#### Multi-line commands
 ```yaml
 - command: |
     echo "Setting up worktree..."
@@ -168,15 +168,15 @@ hooks:
     rake db:migrate
 ```
 
-#### 利用可能な環境変数
+#### Available Environment Variables
 
-gw は以下の環境変数を自動的に設定します：
+gw automatically sets the following environment variables:
 
-- `GW_WORKTREE_PATH`: 作成されたワークツリーの絶対パス
-- `GW_BRANCH`: ブランチ名
-- `GW_REPO_ROOT`: メインリポジトリのルートディレクトリの絶対パス
+- `GW_WORKTREE_PATH`: Absolute path of the created worktree
+- `GW_BRANCH`: Branch name
+- `GW_REPO_ROOT`: Absolute path of the main repository root directory
 
-これらの環境変数はコマンド内で参照できます：
+These environment variables can be referenced in commands:
 
 ```yaml
 hooks:
@@ -185,19 +185,19 @@ hooks:
     - command: ln -s $GW_REPO_ROOT/.env.local .env
 ```
 
-`env` フィールドで独自の環境変数を追加することもできます（gw の環境変数を上書きすることも可能）。
+You can also add custom environment variables in the `env` field (and even override gw's environment variables).
 
-#### フックの実行順序とエラーハンドリング
+#### Hook Execution Order and Error Handling
 
-フックは各タイプ内で定義された順番に実行されます。
+Hooks are executed in the order they are defined within each type.
 
-- **pre_add / pre_remove**: フックが失敗すると操作全体が中止されます
-- **post_add / post_remove**: フックが失敗しても警告が表示されるのみで、操作自体は成功として扱われます
+- **pre_add / pre_remove**: If a hook fails, the entire operation is aborted
+- **post_add / post_remove**: If a hook fails, only a warning is displayed, and the operation is treated as successful
 
-#### 使用例
+#### Usage Examples
 
 ```bash
-# プロジェクトルートに gw.yaml を配置
+# Place gw.yaml in the project root
 cat << 'EOF' > gw.yaml
 hooks:
   pre_add:
@@ -211,9 +211,9 @@ hooks:
     - command: npm install
 EOF
 
-# ワークツリーを作成すると、フックが自動実行される
+# When creating a worktree, hooks are automatically executed
 gw add feature/new-feature
-# 出力:
+# Output:
 # Executing pre-add hooks...
 # ⚙️  Hook 1: Executing command
 # ✅ Hook 1: Command completed successfully
@@ -224,12 +224,12 @@ gw add feature/new-feature
 # ⚙️  Hook 1: Executing command: cp .env.example .env
 # ✅ Hook 1: Command completed successfully
 # ⚙️  Hook 2: Executing command: npm install
-# ... (npm install の出力)
+# ... (npm install output)
 # ✅ Hook 2: Command completed successfully
 
-# ワークツリーを削除するときもフックが実行される
+# When removing a worktree, hooks are also executed
 gw rm feature/new-feature
-# 出力:
+# Output:
 # Executing pre-remove hooks...
 # ⚙️  Hook 1: Backing up data from /path/to/worktree
 # ✅ Hook 1: Command completed successfully
@@ -240,9 +240,9 @@ gw rm feature/new-feature
 # ⚙️  Hook 1: Cleaned up worktree for feature/new-feature
 # ✅ Hook 1: Command completed successfully
 
-# 無効なブランチ名の場合（pre_add で拒否される）
+# Invalid branch name (rejected by pre_add)
 gw add invalid-branch
-# 出力:
+# Output:
 # Executing pre-add hooks...
 # ⚙️  Hook 1: Executing command
 # ❌ Branch must start with feature/ or fix/
@@ -250,210 +250,213 @@ gw add invalid-branch
 # Error: pre-add hook failed
 ```
 
-### ユーザー設定ファイル
+### User Configuration File
 
-#### 設定例
+#### Configuration Example
 
 ```yaml
 add:
-  open: true  # ワークツリー作成後に自動的にエディターで開く
-  sync: false  # メインワークツリーからファイルを同期する
-  sync_ignored: false  # gitignored ファイルも同期する
+  open: true  # Automatically open in editor after worktree creation
+  sync: false  # Sync files from main worktree
+  sync_ignored: false  # Also sync gitignored files
 rm:
-  branch: false  # ワークツリー削除時にブランチも削除する
-  force: false  # 確認プロンプトをスキップする
+  branch: false  # Also delete branch when removing worktree
+  force: false  # Skip confirmation prompt
 close:
-  force: false  # 確認プロンプトをスキップする
-editor: code  # 使用するエディターコマンド
+  force: false  # Skip confirmation prompt
+editor: code  # Editor command to use
 ```
 
-#### 設定項目
+#### Configuration Items
 
-- `add.open` (boolean): ワークツリー作成後に自動的にエディターで開くかどうか（デフォルト: `false`）
-- `add.sync` (boolean): メインワークツリーからファイルを同期するかどうか（デフォルト: `false`）
-- `add.sync_ignored` (boolean): gitignored ファイルも同期するかどうか（デフォルト: `false`）
-- `rm.branch` (boolean): ワークツリー削除時に関連するブランチも削除するかどうか（デフォルト: `false`）
-- `rm.force` (boolean): 削除時の確認プロンプトをスキップするかどうか（デフォルト: `false`）
-- `close.force` (boolean): 閉じるときの確認プロンプトをスキップするかどうか（デフォルト: `false`）
-- `editor` (string): 使用するエディターコマンド（例: `code`, `vim`, `emacs`）
+- `add.open` (boolean): Whether to automatically open in editor after worktree creation (default: `false`)
+- `add.sync` (boolean): Whether to sync files from main worktree (default: `false`)
+- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`)
+- `rm.branch` (boolean): Whether to also delete associated branch when removing worktree (default: `false`)
+- `rm.force` (boolean): Whether to skip confirmation prompt when deleting (default: `false`)
+- `close.force` (boolean): Whether to skip confirmation prompt when closing (default: `false`)
+- `editor` (string): Editor command to use (e.g., `code`, `vim`, `emacs`)
 
-**注意**: フラグの優先順位は以下の通りです：`--no-*` フラグ > 通常フラグ > 設定ファイル
+**Note**: Flag precedence is as follows: `--no-*` flags > regular flags > configuration file
 
-#### --no-* フラグについて
+#### About --no-* Flags
 
-設定ファイルで有効化したオプションをコマンド実行時に無効化できます：
+You can disable options enabled in the configuration file when executing commands:
 
-- `--no-open`: `add.open=true` でも開かない
-- `--no-sync`: `add.sync=true` でも同期しない
-- `--no-sync-ignored`: `add.sync_ignored=true` でも gitignored ファイルを同期しない
-- `--no-yes` / `--no-force`: `close.force=true` または `rm.force=true` でも確認プロンプトを表示
-- `--no-branch`: `rm.branch=true` でもブランチを削除しない
+- `--no-open`: Don't open even with `add.open=true`
+- `--no-sync`: Don't sync even with `add.sync=true`
+- `--no-sync-ignored`: Don't sync gitignored files even with `add.sync_ignored=true`
+- `--no-yes` / `--no-force`: Show confirmation prompt even with `close.force=true` or `rm.force=true`
+- `--no-branch`: Don't delete branch even with `rm.branch=true`
 
 ```bash
-# 例: config で add.open=true でも開かない
+# Example: Don't open even with add.open=true in config
 gw add --no-open feature/hoge
 
-# 例: config で rm.branch=true でもブランチを残す
+# Example: Keep branch even with rm.branch=true in config
 gw rm --no-branch feature/hoge
 ```
 
-### ワークツリーの作成
+### Creating Worktrees
 
 ```bash
-# 既存ブランチのワークツリーを作成
+# Create a worktree for an existing branch
 gw add feature/hoge
-# => ../ex-repo-feature-hoge/ が作成される
+# => Creates ../ex-repo-feature-hoge/
 
-# 新規ブランチを作成してワークツリーを作成
+# Create a new branch and worktree
 gw add -b feature/new
 
-# PR のブランチからワークツリーを作成
+# Create a worktree from a PR branch
 gw add --pr 123
 gw add -p 123
 gw add --pr https://github.com/owner/repo/pull/123
 gw add -p https://github.com/owner/repo/pull/123
 
-# ワークツリー作成後にエディターで開く（コマンドラインフラグ）
+# Open in editor after creating worktree (command-line flag)
 gw add --open --editor code feature/hoge
 gw add --open -e vim feature/hoge
 
-# 設定ファイルで add.open=true と editor=code を設定している場合
-# フラグなしでもエディターが自動的に開く
+# If add.open=true and editor=code are set in config file
+# Editor opens automatically even without flags
 gw add feature/hoge
 
-# 設定ファイルで add.open=true でも開かない（--no-open フラグ）
+# Don't open even with add.open=true in config (--no-open flag)
 gw add --no-open feature/hoge
 
-# オプションの組み合わせも可能
+# Combining options is also possible
 gw add -b --open --editor code feature/new
 gw add --pr 123 --open -e vim
 ```
 
-### ワークツリー一覧
+### Listing Worktrees
 
 ```bash
 gw ls
-# 出力形式: <ディレクトリ名>\t<ブランチ名>\t<コミットハッシュ>\t<メインマーカー>
+# Output format: <directory name>\t<branch name>\t<commit hash>\t<main marker>
+# Note: The tabs (\t) below are intentional - they represent the actual tab-separated output format
+<!-- markdownlint-disable MD010 -->
 # ex-repo	main	a1b2c3d	(main)
 # ex-repo-feature-hoge	feature/hoge	b4e5f6c
 # ex-repo-fix-foo	fix/foo	c7d8e9f
+<!-- markdownlint-enable MD010 -->
 
-# フルパスのみ出力
+# Output full paths only
 gw ls -p
 # /path/to/ex-repo
 # /path/to/ex-repo-feature-hoge
 # /path/to/ex-repo-fix-foo
 ```
 
-### ワークツリーの削除
+### Removing Worktrees
 
 ```bash
-# 以下はすべて同じワークツリーを指定
+# All of these specify the same worktree
 gw rm feature/hoge
 gw rm feature-hoge
 gw rm ex-repo-feature-hoge
 
-# 複数のワークツリーを一度に削除
+# Remove multiple worktrees at once
 gw rm feature/hoge feature/fuga fix/foo
 
-# ブランチも一緒に削除（-b/--branch オプション）
+# Also delete branch (-b/--branch option)
 gw rm -b feature/hoge
 gw rm --branch feature-hoge
 
-# 強制削除（マージされていないブランチも削除）
+# Force delete (also delete unmerged branches)
 gw rm -f -b feature/hoge
 
-# 引数なしで fzf でインタラクティブに選択（Tab で複数選択可能）
+# Without arguments, select interactively with fzf (Tab for multiple selection)
 gw rm
 ```
 
-**注意**: ブランチ削除には以下の安全性チェックが適用されます：
-- `main` または `master` ブランチは削除できません
-- カレントブランチは削除できません
-- マージされていないブランチは `-f`/`--force` フラグなしでは削除できません
+**Note**: The following safety checks are applied when deleting branches:
+- Cannot delete `main` or `master` branch
+- Cannot delete the current branch
+- Cannot delete unmerged branches without `-f`/`--force` flag
 
-### ワークツリーでコマンド実行
+### Executing Commands in Worktrees
 
 ```bash
 gw exec feature/hoge git status
 gw exec feature-hoge npm install
 
-# ワークツリー名を省略すると fzf で選択
+# Omit worktree name to select with fzf
 gw exec git status
 ```
 
-### ワークツリーへ移動
+### Navigating to Worktrees
 
 ```bash
-# 指定したワークツリーに移動
+# Navigate to the specified worktree
 gw sw feature/hoge
 
-# fzf でインタラクティブに選択
+# Select interactively with fzf
 gw sw
 ```
 
-### 現在のワークツリーを閉じる
+### Closing Current Worktree
 
 ```bash
-# 現在のワークツリーを閉じてメインワークツリーに戻る
+# Close current worktree and return to main worktree
 gw close
 
-# 確認プロンプトをスキップして閉じる
+# Skip confirmation prompt and close
 gw close -y
 gw close --yes
 
-# ブランチも一緒に削除
+# Also delete branch
 gw close -b
 gw close --branch
 
-# 強制的に閉じる（マージされていないブランチも削除）
+# Force close (also delete unmerged branches)
 gw close -f -b
 ```
 
-**注意**: `gw close` コマンドは：
-- メインワークツリー（`main` または `master`）からは実行できません
-- シェル統合が必要です（`gw init` のセットアップが必要）
-- 設定ファイルで `close.force=true` を設定すると確認プロンプトをスキップできます
+**Note**: The `gw close` command:
+- Cannot be executed from main worktree (`main` or `master`)
+- Requires shell integration (setup with `gw init` required)
+- Can skip confirmation prompt by setting `close.force=true` in config file
 
-## コマンド一覧
+## Command List
 
-| コマンド | エイリアス | 説明 |
-|---------|-----------|------|
-| `gw add <branch>` | `gw a` | ワークツリー作成 |
-| `gw add` | `gw a` | 引数なしで fzf によるブランチ選択 |
-| `gw add -b <branch>` | `gw a -b` | 新規ブランチ + ワークツリー作成 |
-| `gw add --pr <url\|number>` | `gw a --pr`, `gw a -p` | PR ブランチのワークツリー作成 |
-| `gw add --open` | `gw a --open` | ワークツリー作成後にエディターで開く |
-| `gw add --no-open` | `gw a --no-open` | 設定を無視してエディターで開かない |
-| `gw add --editor <cmd>` | `gw a -e` | 使用するエディターコマンドを指定 |
-| `gw add --sync` | `gw a --sync` | メインワークツリーからファイルを同期 |
-| `gw add --no-sync` | `gw a --no-sync` | 設定を無視してファイルを同期しない |
-| `gw add --sync-ignored` | `gw a --sync-ignored` | gitignored ファイルも同期 |
-| `gw add --no-sync-ignored` | `gw a --no-sync-ignored` | 設定を無視して gitignored ファイルを同期しない |
-| `gw ls` | `gw l` | ワークツリー一覧表示 |
-| `gw ls -p` | `gw l -p` | ワークツリーのフルパスのみ表示 |
-| `gw rm [name...]` | `gw r` | ワークツリー削除（引数なしまたは複数指定可能） |
-| `gw rm` | `gw r` | 引数なしで fzf による選択（Tab で複数選択可能） |
-| `gw rm -b <name>` | `gw r -b` | ワークツリーとブランチを削除 |
-| `gw rm --no-branch <name>` | `gw r --no-branch` | 設定を無視してブランチを削除しない |
-| `gw rm --yes/-y` | `gw r -y` | 確認プロンプトをスキップ |
-| `gw rm --no-yes/--no-force` | `gw r --no-yes` | 設定を無視して確認プロンプトを表示 |
-| `gw exec [name] <cmd...>` | `gw e` | 対象ワークツリーでコマンド実行（引数なしで fzf） |
-| `gw sw [name]` | `gw s` | 対象ワークツリーに移動（引数なしで fzf） |
-| `gw close [flags]` | `gw c` | 現在のワークツリーを閉じてメインに戻る |
-| `gw close -b` | `gw c -b` | ワークツリーとブランチを削除して閉じる |
-| `gw close -y/--yes` | `gw c -y` | 確認プロンプトをスキップして閉じる |
-| `gw close --no-yes/--no-force` | `gw c --no-yes` | 設定を無視して確認プロンプトを表示 |
-| `gw fd` | `gw f` | fzf でワークツリー検索（ブランチ名を出力） |
-| `gw fd -p` | `gw f -p` | fzf でワークツリー検索（フルパスを出力） |
-| `gw init <shell>` | `gw i` | シェル初期化スクリプト出力 |
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `gw add <branch>` | `gw a` | Create worktree |
+| `gw add` | `gw a` | Branch selection with fzf (no arguments) |
+| `gw add -b <branch>` | `gw a -b` | Create new branch + worktree |
+| `gw add --pr <url\|number>` | `gw a --pr`, `gw a -p` | Create worktree from PR branch |
+| `gw add --open` | `gw a --open` | Open in editor after worktree creation |
+| `gw add --no-open` | `gw a --no-open` | Don't open in editor (ignore config) |
+| `gw add --editor <cmd>` | `gw a -e` | Specify editor command to use |
+| `gw add --sync` | `gw a --sync` | Sync files from main worktree |
+| `gw add --no-sync` | `gw a --no-sync` | Don't sync files (ignore config) |
+| `gw add --sync-ignored` | `gw a --sync-ignored` | Also sync gitignored files |
+| `gw add --no-sync-ignored` | `gw a --no-sync-ignored` | Don't sync gitignored files (ignore config) |
+| `gw ls` | `gw l` | List worktrees |
+| `gw ls -p` | `gw l -p` | Display only full paths of worktrees |
+| `gw rm [name...]` | `gw r` | Remove worktree(s) (no arguments or multiple) |
+| `gw rm` | `gw r` | Select with fzf (no arguments, Tab for multiple) |
+| `gw rm -b <name>` | `gw r -b` | Remove worktree and branch |
+| `gw rm --no-branch <name>` | `gw r --no-branch` | Don't delete branch (ignore config) |
+| `gw rm --yes/-y` | `gw r -y` | Skip confirmation prompt |
+| `gw rm --no-yes/--no-force` | `gw r --no-yes` | Show confirmation prompt (ignore config) |
+| `gw exec [name] <cmd...>` | `gw e` | Execute command in target worktree (fzf without arguments) |
+| `gw sw [name]` | `gw s` | Navigate to target worktree (fzf without arguments) |
+| `gw close [flags]` | `gw c` | Close current worktree and return to main |
+| `gw close -b` | `gw c -b` | Close and delete worktree and branch |
+| `gw close -y/--yes` | `gw c -y` | Close and skip confirmation prompt |
+| `gw close --no-yes/--no-force` | `gw c --no-yes` | Show confirmation prompt (ignore config) |
+| `gw fd` | `gw f` | Search worktrees with fzf (output branch name) |
+| `gw fd -p` | `gw f -p` | Search worktrees with fzf (output full path) |
+| `gw init <shell>` | `gw i` | Output shell initialization script |
 
-## 必要なツール
+## Required Tools
 
 - `git`
-- `fzf` (インタラクティブ選択用)
-- `gh` (PR 連携用)
+- `fzf` (for interactive selection)
+- `gh` (for PR integration)
 
-## ライセンス
+## License
 
 MIT
