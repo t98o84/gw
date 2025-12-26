@@ -335,9 +335,11 @@ gw add --pr 123 --open -e vim
 gw ls
 # Output format: <directory name>\t<branch name>\t<commit hash>\t<main marker>
 # Note: The tabs (\t) below are intentional - they represent the actual tab-separated output format
+<!-- markdownlint-disable MD010 -->
 # ex-repo	main	a1b2c3d	(main)
 # ex-repo-feature-hoge	feature/hoge	b4e5f6c
 # ex-repo-fix-foo	fix/foo	c7d8e9f
+<!-- markdownlint-enable MD010 -->
 
 # Output full paths only
 gw ls -p
