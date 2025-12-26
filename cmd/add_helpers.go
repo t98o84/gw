@@ -368,10 +368,10 @@ func createWorktree(repoName, branch string, createBranch bool, openEditor strin
 		}
 	}
 
-	// エディターで開く処理
+	// Open in editor
 	if openEditor != "" {
 		if err := openInEditor(openEditor, wtPath); err != nil {
-			// エディター起動失敗は警告のみ（ワークツリー作成は成功扱い）
+			// Editor launch failure is just a warning (worktree creation is treated as successful)
 			fmt.Printf("⚠ Warning: Failed to open editor: %v\n", err)
 		}
 	}
@@ -385,13 +385,13 @@ func openInEditor(editor, path string) error {
 		return mockOpenInEditor(editor, path)
 	}
 
-	// エディターコマンドの存在確認
+	// Check if editor command exists
 	_, err := exec.LookPath(editor)
 	if err != nil {
 		return fmt.Errorf("editor command '%s' not found in PATH", editor)
 	}
 
-	// エディターコマンドの実行（バックグラウンド）
+	// Execute editor command (in background)
 	cmd := exec.Command(editor, path)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start editor '%s': %w", editor, err)

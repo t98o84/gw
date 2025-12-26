@@ -1,77 +1,77 @@
-# Phase 1 実装計画書
+# Phase 1 Implementation Plan
 
-## 1. 実装スコープ
+## 1. Implementation Scope
 
-### 対応項目
-- **shell 抽象化レイヤーの導入**: `exec.Command` の直接呼び出しを抽象化し、テスト可能にする
-- **fzf 統合の共通化**: 3箇所に分散している fzf 呼び出しを統一インターフェースに集約
-- **runAdd 関数の分割**: 96行の複雑な関数を責務ごとに分割し、保守性を向上
+### Covered Items
+- **Introduction of shell abstraction layer**: Abstraction of direct `exec.Command` calls for testability
+- **Unification of fzf integration**: Consolidate fzf calls scattered across 3 locations into a unified interface
+- **Split runAdd function**: Split the complex 96-line function by responsibility to improve maintainability
 
-### 非対応項目 (Phase 2以降)
-- グローバル変数のフラグ管理の改善 (Phase 2)
-- エラーハンドリングの統一的なラッパー実装 (Phase 2)
-- GitHub API との統合テスト (Phase 3)
-- パフォーマンス最適化 (Phase 3)
+### Items Not Covered (Phase 2 and Beyond)
+- Improvement of global variable flag management (Phase 2)
+- Implementation of unified error handling wrapper (Phase 2)
+- Integration tests with GitHub API (Phase 3)
+- Performance optimization (Phase 3)
 
-### 完了基準
-- [ ] `internal/shell/executor.go` が実装され、全 15箇所の `exec.Command` 呼び出しが移行完了
-- [ ] `internal/fzf/selector.go` が実装され、3箇所の fzf 呼び出しが統一インターフェースに移行
-- [ ] `cmd/add.go:runAdd` の複雑度が 10 以下に低減
-- [ ] 新規パッケージ (`internal/shell`, `internal/fzf`) のテストカバレッジが 80% 以上
-- [ ] 既存の全テストが引き続きパス
-- [ ] Docker 環境でビルドとテストが正常に実行できる
+### Completion Criteria
+- [ ] `internal/shell/executor.go` is implemented, and all 15 `exec.Command` calls are migrated
+- [ ] `internal/fzf/selector.go` is implemented, and 3 fzf calls are migrated to unified interface
+- [ ] Complexity of `cmd/add.go:runAdd` reduced to 10 or below
+- [ ] Test coverage of new packages (`internal/shell`, `internal/fzf`) is 80% or above
+- [ ] All existing tests continue to pass
+- [ ] Build and test execution successful in Docker environment
 
-## 2. アーキテクチャ設計
+## 2. Architecture Design
 
-### パッケージ構造
+### Package Structure
 
 ```
 gw/
-├── cmd/                        # CLI コマンド層
-│   ├── add.go                 # リファクタリング: Executor/FzfSelector 使用
-│   ├── sw.go                  # リファクタリング: FzfSelector 使用
-│   ├── rm.go                  # リファクタリング: FzfSelector 使用
-│   ├── fzf.go                 # 削除候補: fzf パッケージに統合
+├── cmd/                        # CLI command layer
+│   ├── add.go                 # Refactored: Uses Executor/FzfSelector
+│   ├── sw.go                  # Refactored: Uses FzfSelector
+│   ├── rm.go                  # Refactored: Uses FzfSelector
+│   ├── fzf.go                 # Deletion candidate: Integrate into fzf package
 │   └── ...
 ├── internal/
-│   ├── shell/                 # 新規: コマンド実行抽象化
-│   │   ├── executor.go        # interface + 実装
-│   │   └── executor_test.go   # モック含むテスト
-│   ├── fzf/                   # 新規: fzf 統合
-│   │   ├── selector.go        # interface + 実装
-│   │   └── selector_test.go   # モック含むテスト
+│   ├── shell/                 # New: Command execution abstraction
+│   │   ├── executor.go        # interface + implementation
+│   │   └── executor_test.go   # Tests including mock
+│   ├── fzf/                   # New: fzf integration
+│   │   ├── selector.go        # interface + implementation
+│   │   └── selector_test.go   # Tests including mock
 │   ├── git/
-│   │   ├── worktree.go        # リファクタリング: Executor 使用
-│   │   ├── naming.go          # 変更なし
+│   │   ├── worktree.go        # Refactored: Uses Executor
+│   │   ├── naming.go          # No change
 │   │   └── ...
 │   └── github/
-│       └── pr.go              # リファクタリング: Executor 使用
+│       └── pr.go              # Refactored: Uses Executor
 ```
 
-### 依存関係
+### Dependencies
 
 ```
 cmd/* 
-  ↓ (使用)
+  ↓ (uses)
 internal/shell/Executor ←┐
 internal/fzf/Selector    │
-  ↓ (使用)               │
+  ↓ (uses)               │
 internal/git/*           │
 internal/github/*        │
-  ↓ (使用)               │
+  ↓ (uses)               │
 internal/shell/Executor ─┘
 ```
 
-**設計原則**:
-- `cmd` パッケージは `internal/shell` と `internal/fzf` の interface のみに依存
-- `internal/git` と `internal/github` は `internal/shell.Executor` を DI で受け取る
-- テスト時は `MockExecutor` を注入してコマンド実行をシミュレート
+**Design Principles**:
+- `cmd` package depends only on `internal/shell` and `internal/fzf` interfaces
+- `internal/git` and `internal/github` receive `internal/shell.Executor` via DI
+- Inject `MockExecutor` during tests to simulate command execution
 
-## 3. 詳細設計
+## 3. Detailed Design
 
-### 3.1. shell 抽象化レイヤー
+### 3.1. Shell Abstraction Layer
 
-**ファイル**: `internal/shell/executor.go`
+**File**: `internal/shell/executor.go`
 
 ```go
 package shell
@@ -81,19 +81,19 @@ import (
     "os/exec"
 )
 
-// Executor はシェルコマンドの実行を抽象化するインターフェース
+// Executor abstracts the execution of shell commands
 type Executor interface {
-    // Execute はコマンドを実行し、標準出力を返す
+    // Execute runs a command and returns its standard output
     Execute(name string, args ...string) ([]byte, error)
     
-    // ExecuteWithStdio はコマンドを実行し、標準入出力を接続する
+    // ExecuteWithStdio runs a command with standard I/O connected
     ExecuteWithStdio(name string, args ...string) error
     
-    // LookPath はコマンドが存在するか確認する
+    // LookPath checks if a command exists
     LookPath(name string) (string, error)
 }
 
-// RealExecutor は実際のコマンド実行を行う実装
+// RealExecutor is an implementation that performs actual command execution
 type RealExecutor struct{}
 
 func NewRealExecutor() *RealExecutor {
@@ -117,7 +117,7 @@ func (e *RealExecutor) LookPath(name string) (string, error) {
     return exec.LookPath(name)
 }
 
-// MockExecutor はテスト用のモック実装
+// MockExecutor is a mock implementation for testing
 type MockExecutor struct {
     ExecuteFunc         func(string, ...string) ([]byte, error)
     ExecuteWithStdioFunc func(string, ...string) error
@@ -146,14 +146,14 @@ func (m *MockExecutor) LookPath(name string) (string, error) {
 }
 ```
 
-**移行方針**:
-1. `internal/git/worktree.go` の全関数に `Executor` を DI
-2. `internal/github/pr.go` の `GetPRBranch` に `Executor` を DI
-3. `cmd/*` で `RealExecutor` を初期化して渡す
+**Migration Strategy**:
+1. DI `Executor` into all functions in `internal/git/worktree.go`
+2. DI `Executor` into `GetPRBranch` in `internal/github/pr.go`
+3. Initialize `RealExecutor` in `cmd/*` and pass it
 
-### 3.2. fzf 統合の共通化
+### 3.2. Unification of fzf Integration
 
-**ファイル**: `internal/fzf/selector.go`
+**File**: `internal/fzf/selector.go`
 
 ```go
 package fzf
@@ -166,28 +166,28 @@ import (
     "github.com/t98o84/gw/internal/shell"
 )
 
-// SelectOptions は fzf の選択オプション
+// SelectOptions are options for fzf selection
 type SelectOptions struct {
-    Items       []string       // 選択肢のリスト
-    Prompt      string         // プロンプトメッセージ
-    Multi       bool           // 複数選択を許可
-    Height      string         // 表示高さ (default: "40%")
-    Reverse     bool           // 逆順表示
+    Items       []string       // List of choices
+    Prompt      string         // Prompt message
+    Multi       bool           // Allow multiple selection
+    Height      string         // Display height (default: "40%")
+    Reverse     bool           // Reverse order display
 }
 
-// Selector は fzf による対話的選択を抽象化するインターフェース
+// Selector abstracts interactive selection with fzf
 type Selector interface {
-    // Select は単一選択を行う
+    // Select performs single selection
     Select(opts SelectOptions) (string, error)
     
-    // SelectMulti は複数選択を行う
+    // SelectMulti performs multiple selection
     SelectMulti(opts SelectOptions) ([]string, error)
     
-    // IsAvailable は fzf が利用可能か確認する
+    // IsAvailable checks if fzf is available
     IsAvailable() bool
 }
 
-// FzfSelector は fzf コマンドを使用した実装
+// FzfSelector is an implementation using the fzf command
 type FzfSelector struct {
     executor shell.Executor
 }
@@ -225,7 +225,7 @@ func (s *FzfSelector) SelectMulti(opts SelectOptions) ([]string, error) {
 }
 
 func (s *FzfSelector) selectInternal(opts SelectOptions, multi bool) ([]string, error) {
-    // fzf 引数の構築
+    // Build fzf arguments
     height := opts.Height
     if height == "" {
         height = "40%"
@@ -248,18 +248,18 @@ func (s *FzfSelector) selectInternal(opts SelectOptions, multi bool) ([]string, 
     }
     args = append(args, "--prompt="+opts.Prompt)
     
-    // fzf 実行 (標準入力に items を渡す必要があるため、特殊処理)
+    // Execute fzf (special handling needed to pass items to stdin)
     cmd := exec.Command("fzf", args...)
     cmd.Stdin = strings.NewReader(strings.Join(opts.Items, "\n"))
     cmd.Stderr = os.Stderr
     
     out, err := cmd.Output()
     if err != nil {
-        // Ctrl+C (exit code 130) はエラーではなくキャンセル扱い
+        // Ctrl+C (exit code 130) is treated as cancellation, not error
         if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 130 {
             return nil, nil
         }
-        return nil, nil // その他のエラーもキャンセル扱い
+        return nil, nil // Other errors also treated as cancellation
     }
     
     output := strings.TrimSpace(string(out))
@@ -267,7 +267,7 @@ func (s *FzfSelector) selectInternal(opts SelectOptions, multi bool) ([]string, 
         return nil, nil
     }
     
-    // 複数行の結果を分割
+    // Split multi-line results
     results := strings.Split(output, "\n")
     var trimmed []string
     for _, r := range results {
@@ -279,7 +279,7 @@ func (s *FzfSelector) selectInternal(opts SelectOptions, multi bool) ([]string, 
     return trimmed, nil
 }
 
-// MockSelector はテスト用のモック実装
+// MockSelector is a mock implementation for testing
 type MockSelector struct {
     SelectFunc      func(SelectOptions) (string, error)
     SelectMultiFunc func(SelectOptions) ([]string, error)
@@ -308,14 +308,14 @@ func (m *MockSelector) IsAvailable() bool {
 }
 ```
 
-**移行方針**:
-1. `cmd/fzf.go` の `selectWorktreeWithFzf` を `fzf.Selector` 使用に書き換え
-2. `cmd/add.go` の `selectBranchWithFzf` を `fzf.Selector` 使用に書き換え
-3. `cmd/fzf.go` は最終的に削除し、機能を `internal/fzf` に完全移行
+**Migration Strategy**:
+1. Rewrite `selectWorktreeWithFzf` in `cmd/fzf.go` to use `fzf.Selector`
+2. Rewrite `selectBranchWithFzf` in `cmd/add.go` to use `fzf.Selector`
+3. Eventually delete `cmd/fzf.go` and fully migrate functionality to `internal/fzf`
 
-### 3.3. runAdd 関数の分割
+### 3.3. Split runAdd Function
 
-**分割後の構成**:
+**Structure After Split**:
 
 ```go
 // cmd/add.go
@@ -339,7 +339,7 @@ func runAdd(cmd *cobra.Command, args []string) error {
         fzfSelector:  selector,
     }
     
-    // Step 1: ブランチ名の決定
+    // Step 1: Determine branch name
     branch, err := opts.determineBranch(args)
     if err != nil {
         return err
@@ -349,29 +349,29 @@ func runAdd(cmd *cobra.Command, args []string) error {
     }
     opts.branch = branch
     
-    // Step 2: リポジトリ情報の取得
+    // Step 2: Get repository information
     repoName, err := git.GetRepoName()
     if err != nil {
         return fmt.Errorf("failed to get repository name: %w", err)
     }
     
-    // Step 3: Worktree パスの生成
+    // Step 3: Generate worktree path
     wtPath, err := git.WorktreePath(repoName, branch)
     if err != nil {
         return fmt.Errorf("failed to generate worktree path: %w", err)
     }
     
-    // Step 4: 既存 worktree のチェック
+    // Step 4: Check existing worktree
     if err := opts.checkExistingWorktree(branch); err != nil {
         return err
     }
     
-    // Step 5: ブランチの存在確認と fetch
+    // Step 5: Ensure branch exists and fetch
     if err := opts.ensureBranchExists(); err != nil {
         return err
     }
     
-    // Step 6: Worktree の作成
+    // Step 6: Create worktree
     fmt.Printf("Creating worktree at %s for branch %s...\n", wtPath, branch)
     if err := git.AddWithExecutor(executor, wtPath, branch, opts.createBranch); err != nil {
         return err
@@ -381,23 +381,23 @@ func runAdd(cmd *cobra.Command, args []string) error {
     return nil
 }
 
-// determineBranch はブランチ名を決定する (PR/fzf/引数から)
+// determineBranch determines the branch name (from PR/fzf/arguments)
 func (opts *addOptions) determineBranch(args []string) (string, error) {
-    // PR 指定の場合
+    // If PR specified
     if opts.prIdentifier != "" {
         return opts.getBranchFromPR()
     }
     
-    // 引数なしの場合は fzf で選択
+    // If no arguments, select with fzf
     if len(args) == 0 {
         return opts.selectBranchInteractive()
     }
     
-    // 引数で指定された場合
+    // If specified by argument
     return args[0], nil
 }
 
-// getBranchFromPR は PR からブランチ名を取得
+// getBranchFromPR gets branch name from PR
 func (opts *addOptions) getBranchFromPR() (string, error) {
     repoName, err := git.GetRepoName()
     if err != nil {
@@ -411,7 +411,7 @@ func (opts *addOptions) getBranchFromPR() (string, error) {
     return branch, nil
 }
 
-// selectBranchInteractive は fzf でブランチを選択
+// selectBranchInteractive selects branch with fzf
 func (opts *addOptions) selectBranchInteractive() (string, error) {
     if !opts.fzfSelector.IsAvailable() {
         return "", fmt.Errorf("fzf is not installed. Please install fzf for interactive selection, or specify a branch name")
@@ -435,7 +435,7 @@ func (opts *addOptions) selectBranchInteractive() (string, error) {
     return selected, err
 }
 
-// checkExistingWorktree は既存の worktree をチェック
+// checkExistingWorktree checks for existing worktree
 func (opts *addOptions) checkExistingWorktree(branch string) error {
     existing, err := git.FindWorktreeWithExecutor(opts.executor, branch)
     if err != nil {
@@ -448,9 +448,9 @@ func (opts *addOptions) checkExistingWorktree(branch string) error {
     return nil
 }
 
-// ensureBranchExists はブランチの存在を確認し、必要に応じて fetch
+// ensureBranchExists ensures branch exists and fetches if necessary
 func (opts *addOptions) ensureBranchExists() error {
-    // 新規ブランチ作成の場合はスキップ
+    // Skip if creating new branch
     if opts.createBranch && opts.prIdentifier == "" {
         return nil
     }
@@ -467,7 +467,7 @@ func (opts *addOptions) ensureBranchExists() error {
     return nil
 }
 
-// fetchBranchIfRemoteExists はリモートブランチが存在すれば fetch
+// fetchBranchIfRemoteExists fetches if remote branch exists
 func (opts *addOptions) fetchBranchIfRemoteExists() error {
     remoteExists, err := git.RemoteBranchExistsWithExecutor(opts.executor, opts.branch)
     if err != nil {
@@ -486,414 +486,414 @@ func (opts *addOptions) fetchBranchIfRemoteExists() error {
 }
 ```
 
-**移行手順**:
-1. 現在の `runAdd` を `runAdd_old` にリネーム
-2. 新しい `runAdd` と補助関数を実装
-3. 既存テストが新実装でもパスすることを確認
-4. `runAdd_old` を削除
+**Migration Procedure**:
+1. Rename current `runAdd` to `runAdd_old`
+2. Implement new `runAdd` and helper functions
+3. Verify existing tests pass with new implementation
+4. Delete `runAdd_old`
 
-## 4. ファイル変更一覧
+## 4. File Change List
 
-### 新規作成
-- `internal/shell/executor.go`: コマンド実行の抽象化 interface と実装
-- `internal/shell/executor_test.go`: Executor のユニットテスト (カバレッジ目標: 85%)
-- `internal/fzf/selector.go`: fzf 統合の抽象化 interface と実装
-- `internal/fzf/selector_test.go`: Selector のユニットテスト (カバレッジ目標: 80%)
+### New Files
+- `internal/shell/executor.go`: Command execution abstraction interface and implementation
+- `internal/shell/executor_test.go`: Executor unit tests (coverage target: 85%)
+- `internal/fzf/selector.go`: fzf integration abstraction interface and implementation
+- `internal/fzf/selector_test.go`: Selector unit tests (coverage target: 80%)
 
-### 変更
-- `cmd/add.go`: runAdd の分割リファクタリング、Executor/Selector の DI
-- `cmd/sw.go`: FzfSelector の使用に変更
-- `cmd/rm.go`: FzfSelector の使用に変更
-- `cmd/fzf.go`: 一時的に FzfSelector を使用するラッパーに変更 (最終的に削除)
-- `internal/git/worktree.go`: 全関数に Executor を DI (既存関数は互換性のためラッパーとして残す)
-- `internal/github/pr.go`: GetPRBranch に Executor を DI
+### Modified Files
+- `cmd/add.go`: Split runAdd refactoring, DI of Executor/Selector
+- `cmd/sw.go`: Change to use FzfSelector
+- `cmd/rm.go`: Change to use FzfSelector
+- `cmd/fzf.go`: Temporarily change to wrapper using FzfSelector (eventually delete)
+- `internal/git/worktree.go`: DI Executor into all functions (keep existing functions as wrappers for compatibility)
+- `internal/github/pr.go`: DI Executor into GetPRBranch
 
-### 削除
-- なし (Phase 1 では削除なし。Phase 2 で `cmd/fzf.go` を削除予定)
+### Deleted Files
+- None (No deletion in Phase 1. Plan to delete `cmd/fzf.go` in Phase 2)
 
-## 5. 実装手順
+## 5. Implementation Procedure
 
-### Step 1: shell 抽象化レイヤーの実装
-**作成するファイル**: 
+### Step 1: Implement Shell Abstraction Layer
+**Files to Create**: 
 - `internal/shell/executor.go`
 - `internal/shell/executor_test.go`
 
-**実装内容**:
-1. `Executor` interface の定義 (Execute, ExecuteWithStdio, LookPath)
-2. `RealExecutor` の実装 (exec.Command のラッパー)
-3. `MockExecutor` の実装 (テスト用)
-4. ユニットテストの作成 (正常系、エラー系)
+**Implementation Content**:
+1. Define `Executor` interface (Execute, ExecuteWithStdio, LookPath)
+2. Implement `RealExecutor` (exec.Command wrapper)
+3. Implement `MockExecutor` (for testing)
+4. Create unit tests (normal and error cases)
 
-**テスト**:
-- `RealExecutor` が `echo`, `ls` などの基本コマンドを実行できることを確認
-- `MockExecutor` が任意の戻り値を返せることを確認
-- エラーハンドリングのテスト
+**Testing**:
+- Verify `RealExecutor` can execute basic commands like `echo`, `ls`
+- Verify `MockExecutor` can return arbitrary values
+- Test error handling
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./internal/shell/...
 docker compose run --rm dev go test -cover ./internal/shell/...
 ```
 
-### Step 2: git パッケージへの Executor DI
-**変更するファイル**: 
+### Step 2: DI Executor into git Package
+**Files to Modify**: 
 - `internal/git/worktree.go`
 
-**実装内容**:
-1. 各関数に `WithExecutor` サフィックス版を追加 (例: `ListWithExecutor`)
-2. 既存関数は `RealExecutor` を使う薄いラッパーとして維持
-3. `exec.Command` の呼び出しを全て `executor.Execute` / `ExecuteWithStdio` に置き換え
+**Implementation Content**:
+1. Add `WithExecutor` suffix versions for each function (e.g., `ListWithExecutor`)
+2. Keep existing functions as thin wrappers using `RealExecutor`
+3. Replace all `exec.Command` calls with `executor.Execute` / `ExecuteWithStdio`
 
-**テスト**:
-- 既存テストが引き続きパスすることを確認
-- `MockExecutor` を使った新規テストを追加
+**Testing**:
+- Verify existing tests continue to pass
+- Add new tests using `MockExecutor`
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./internal/git/...
 docker compose run --rm dev go test -cover ./internal/git/...
 ```
 
-### Step 3: fzf 統合の実装
-**作成するファイル**: 
+### Step 3: Implement fzf Integration
+**Files to Create**: 
 - `internal/fzf/selector.go`
 - `internal/fzf/selector_test.go`
 
-**実装内容**:
-1. `Selector` interface の定義
-2. `SelectOptions` 構造体の設計
-3. `FzfSelector` の実装 (Executor を DI)
-4. Ctrl+C ハンドリング (exit code 130)
-5. `MockSelector` の実装
+**Implementation Content**:
+1. Define `Selector` interface
+2. Design `SelectOptions` structure
+3. Implement `FzfSelector` (DI Executor)
+4. Handle Ctrl+C (exit code 130)
+5. Implement `MockSelector`
 
-**テスト**:
-- `MockSelector` を使った選択シミュレーション
-- キャンセル処理のテスト
-- 複数選択のテスト
+**Testing**:
+- Simulate selection using `MockSelector`
+- Test cancellation handling
+- Test multiple selection
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./internal/fzf/...
 docker compose run --rm dev go test -cover ./internal/fzf/...
 ```
 
-### Step 4: cmd/add.go の runAdd 分割
-**変更するファイル**: 
+### Step 4: Split runAdd in cmd/add.go
+**Files to Modify**: 
 - `cmd/add.go`
 
-**実装内容**:
-1. `addOptions` 構造体の導入
-2. `runAdd` のメイン処理を6ステップに分割
-3. 各ステップを専用メソッドに抽出:
+**Implementation Content**:
+1. Introduce `addOptions` structure
+2. Split `runAdd` main process into 6 steps
+3. Extract each step into dedicated method:
    - `determineBranch`
    - `getBranchFromPR`
    - `selectBranchInteractive`
    - `checkExistingWorktree`
    - `ensureBranchExists`
    - `fetchBranchIfRemoteExists`
-4. Executor と FzfSelector を DI
+4. DI Executor and FzfSelector
 
-**テスト**:
-- 既存の `cmd/add_test.go` が引き続きパスすることを確認
-- 新しい補助関数のユニットテストを追加
+**Testing**:
+- Verify existing `cmd/add_test.go` continues to pass
+- Add unit tests for new helper functions
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./cmd/ -run TestAdd
-docker compose run --rm dev gofmt -l cmd/add.go  # フォーマット確認
+docker compose run --rm dev gofmt -l cmd/add.go  # Format check
 ```
 
-### Step 5: cmd/sw.go と cmd/rm.go の FzfSelector 移行
-**変更するファイル**: 
+### Step 5: Migrate cmd/sw.go and cmd/rm.go to FzfSelector
+**Files to Modify**: 
 - `cmd/sw.go`
 - `cmd/rm.go`
-- `cmd/fzf.go` (ラッパーとして更新)
+- `cmd/fzf.go` (update as wrapper)
 
-**実装内容**:
-1. `cmd/fzf.go` の `selectWorktreeWithFzf` を `fzf.Selector` を使う実装に変更
-2. `cmd/sw.go` と `cmd/rm.go` で `fzf.Selector` を DI
-3. エラーメッセージの統一
+**Implementation Content**:
+1. Change `selectWorktreeWithFzf` in `cmd/fzf.go` to use `fzf.Selector`
+2. DI `fzf.Selector` in `cmd/sw.go` and `cmd/rm.go`
+3. Unify error messages
 
-**テスト**:
-- `cmd/sw_test.go` と `cmd/rm_test.go` が引き続きパスすることを確認
+**Testing**:
+- Verify `cmd/sw_test.go` and `cmd/rm_test.go` continue to pass
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./cmd/ -run TestSw
 docker compose run --rm dev go test -v ./cmd/ -run TestRm
 ```
 
-### Step 6: github パッケージへの Executor DI
-**変更するファイル**: 
+### Step 6: DI Executor into github Package
+**Files to Modify**: 
 - `internal/github/pr.go`
 
-**実装内容**:
-1. `GetPRBranch` に `WithExecutor` 版を追加
-2. `gh` コマンドの呼び出しを `executor.Execute` に置き換え
+**Implementation Content**:
+1. Add `WithExecutor` version to `GetPRBranch`
+2. Replace `gh` command calls with `executor.Execute`
 
-**テスト**:
-- 既存テストが引き続きパスすることを確認
-- `MockExecutor` を使った新規テストを追加
+**Testing**:
+- Verify existing tests continue to pass
+- Add new tests using `MockExecutor`
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v ./internal/github/...
 docker compose run --rm dev go test -cover ./internal/github/...
 ```
 
-### Step 7: 統合テストとドキュメント更新
-**実施内容**:
-1. 全パッケージのテストを実行
-2. テストカバレッジレポートの生成
-3. ビルド確認
-4. 簡単な動作確認 (Docker 内で gw コマンドを実行)
+### Step 7: Integration Tests and Documentation Update
+**Implementation Content**:
+1. Run tests for all packages
+2. Generate test coverage report
+3. Verify build
+4. Simple functional verification (run gw command in Docker)
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
-# 全テスト実行
+# Run all tests
 docker compose run --rm dev go test -v ./...
 
-# カバレッジレポート
+# Coverage report
 docker compose run --rm dev go test -coverprofile=coverage.out ./...
 docker compose run --rm dev go tool cover -func=coverage.out
 
-# ビルド確認
+# Verify build
 docker compose run --rm dev go build -o gw .
 
-# 動作確認 (簡易)
+# Simple functional verification
 docker compose run --rm dev ./gw --help
 ```
 
-### Step 8: コード品質チェック
-**実施内容**:
-1. go fmt でフォーマット確認
-2. go vet で静的解析
-3. 循環的複雑度の確認 (gocyclo)
+### Step 8: Code Quality Check
+**Implementation Content**:
+1. Format check with go fmt
+2. Static analysis with go vet
+3. Check cyclomatic complexity (gocyclo)
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev gofmt -l .
 docker compose run --rm dev go vet ./...
 docker compose run --rm dev sh -c "go install github.com/fzipp/gocyclo/cmd/gocyclo@latest && gocyclo -over 10 ."
 ```
 
-### Step 9: リグレッションテスト
-**実施内容**:
-1. 既存の全テストケースが引き続きパスすることを確認
-2. 新規追加したテストケースの確認
-3. エッジケースのテスト (空のリポジトリ、fzf なしなど)
+### Step 9: Regression Testing
+**Implementation Content**:
+1. Verify all existing test cases continue to pass
+2. Verify newly added test cases
+3. Test edge cases (empty repository, without fzf, etc.)
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
 docker compose run --rm dev go test -v -count=1 ./...
 ```
 
-### Step 10: Phase 1 完了確認
-**実施内容**:
-1. 完了基準のチェックリスト確認
-2. 変更内容のレビュー
-3. Phase 2 への移行準備
+### Step 10: Phase 1 Completion Verification
+**Implementation Content**:
+1. Check completion criteria checklist
+2. Review changes
+3. Prepare for transition to Phase 2
 
-**確認コマンド**:
+**Verification Commands**:
 ```bash
-# カバレッジサマリー
+# Coverage summary
 docker compose run --rm dev go test -cover ./...
 
-# 複雑度確認
+# Complexity check
 docker compose run --rm dev sh -c "gocyclo -over 10 cmd/add.go"
 ```
 
-## 6. テスト計画
+## 6. Test Plan
 
-### テストカバレッジ目標
-- `internal/shell`: **85%** (Executor の全メソッド + エラーハンドリング)
-- `internal/fzf`: **80%** (Selector の選択ロジック + キャンセル処理)
-- `internal/git`: **40%** (現状 8.5% から向上、全関数に WithExecutor 版を追加)
-- `internal/github`: **50%** (現状 14.6% から向上)
-- `cmd`: **30%** (現状 7.9% から向上、主要フローのテスト)
+### Test Coverage Targets
+- `internal/shell`: **85%** (All Executor methods + error handling)
+- `internal/fzf`: **80%** (Selector selection logic + cancellation handling)
+- `internal/git`: **40%** (Improve from current 8.5%, add WithExecutor versions to all functions)
+- `internal/github`: **50%** (Improve from current 14.6%)
+- `cmd`: **30%** (Improve from current 7.9%, test main flows)
 
-### テストケース
+### Test Cases
 
 #### internal/shell/executor_test.go
-- `RealExecutor.Execute`: コマンド正常実行、エラー時の処理
-- `RealExecutor.ExecuteWithStdio`: 標準入出力の接続確認
-- `RealExecutor.LookPath`: コマンドの存在確認
-- `MockExecutor`: 各メソッドのモック動作確認
+- `RealExecutor.Execute`: Normal command execution, error handling
+- `RealExecutor.ExecuteWithStdio`: Verify standard I/O connection
+- `RealExecutor.LookPath`: Verify command existence check
+- `MockExecutor`: Verify mock behavior for each method
 
 #### internal/fzf/selector_test.go
-- `FzfSelector.Select`: 単一選択の正常系
-- `FzfSelector.SelectMulti`: 複数選択の正常系
-- `FzfSelector.IsAvailable`: fzf の存在確認
-- キャンセル処理 (exit code 130)
-- 空の選択結果の処理
-- `MockSelector`: 各メソッドのモック動作確認
+- `FzfSelector.Select`: Normal case for single selection
+- `FzfSelector.SelectMulti`: Normal case for multiple selection
+- `FzfSelector.IsAvailable`: Verify fzf existence check
+- Cancellation handling (exit code 130)
+- Empty selection result handling
+- `MockSelector`: Verify mock behavior for each method
 
-#### internal/git/worktree_test.go (追加分)
-- `ListWithExecutor`: モックを使った worktree リスト取得
-- `AddWithExecutor`: モックを使った worktree 作成
-- `BranchExistsWithExecutor`: モックを使ったブランチ存在確認
+#### internal/git/worktree_test.go (additions)
+- `ListWithExecutor`: Get worktree list using mock
+- `AddWithExecutor`: Create worktree using mock
+- `BranchExistsWithExecutor`: Check branch existence using mock
 
-#### cmd/add_test.go (追加分)
-- `determineBranch`: 引数/PR/fzf からのブランチ決定
-- `checkExistingWorktree`: 既存 worktree の検出
-- `ensureBranchExists`: ブランチ存在確認と fetch
-- エラーハンドリング各種
+#### cmd/add_test.go (additions)
+- `determineBranch`: Branch determination from arguments/PR/fzf
+- `checkExistingWorktree`: Detect existing worktree
+- `ensureBranchExists`: Check branch existence and fetch
+- Various error handling scenarios
 
-## 7. リスク管理
+## 7. Risk Management
 
-### リスク1: Executor DI による既存コードの破壊
-- **影響度**: HIGH
-- **対策**: 
-  - 既存関数を薄いラッパーとして残し、後方互換性を維持
-  - `WithExecutor` サフィックスで新関数を追加し、段階的に移行
-  - 各ステップで既存テストがパスすることを確認
+### Risk 1: Breaking Existing Code with Executor DI
+- **Impact**: HIGH
+- **Mitigation**: 
+  - Keep existing functions as thin wrappers for backward compatibility
+  - Add new functions with `WithExecutor` suffix for gradual migration
+  - Verify existing tests pass at each step
 
-### リスク2: fzf 統合の実装が複雑化
-- **影響度**: MEDIUM
-- **対策**: 
-  - `exec.Command` を直接使用する部分は `selectInternal` に限定
-  - 標準入力の接続が必要なため、`Executor` を使わず直接実装
-  - エラーハンドリング (特に Ctrl+C) を明確に文書化
+### Risk 2: fzf Integration Implementation Becomes Complex
+- **Impact**: MEDIUM
+- **Mitigation**: 
+  - Limit direct `exec.Command` usage to `selectInternal` only
+  - Implement directly without using `Executor` due to stdin connection requirement
+  - Clearly document error handling (especially Ctrl+C)
 
-### リスク3: テストカバレッジが目標に達しない
-- **影響度**: MEDIUM
-- **対策**: 
-  - Step 1-3 で新規パッケージを実装する際、テストファーストで進める
-  - 各ステップでカバレッジを確認し、不足分を補う
-  - モックを活用して外部依存を排除
+### Risk 3: Test Coverage Doesn't Reach Target
+- **Impact**: MEDIUM
+- **Mitigation**: 
+  - Proceed with test-first approach when implementing new packages in Steps 1-3
+  - Check coverage at each step and fill gaps
+  - Use mocks to eliminate external dependencies
 
-### リスク4: Docker 環境でのビルド/テストの失敗
-- **影響度**: LOW
-- **対策**: 
-  - 各ステップで `docker compose run --rm dev` でテスト実行
-  - Dockerfile に必要な依存関係 (git, fzf) が含まれていることを確認済み
-  - Go 1.23 の互換性は問題なし
+### Risk 4: Build/Test Failure in Docker Environment
+- **Impact**: LOW
+- **Mitigation**: 
+  - Run tests with `docker compose run --rm dev` at each step
+  - Verified that required dependencies (git, fzf) are included in Dockerfile
+  - Go 1.23 compatibility confirmed
 
-### リスク5: runAdd 分割による複雑度の移動
-- **影響度**: LOW
-- **対策**: 
-  - 各補助関数は単一責務を持つように設計
-  - 関数名と処理内容を明確に対応させる
-  - 各関数の複雑度を個別に測定し、10 以下を維持
+### Risk 5: Complexity Migration from runAdd Split
+- **Impact**: LOW
+- **Mitigation**: 
+  - Design each helper function to have single responsibility
+  - Clearly correspond function names with processing content
+  - Measure complexity of each function individually, maintain below 10
 
-## 8. 実装チェックリスト
+## 8. Implementation Checklist
 
-### Phase 1 開始前
-- [x] Analyze エージェントの分析結果を確認
-- [x] 現在のコードベースを確認
-- [x] Docker 環境が動作することを確認
-- [x] 実装計画書を作成
+### Before Phase 1 Start
+- [x] Verify Analyze agent analysis results
+- [x] Verify current codebase
+- [x] Verify Docker environment works
+- [x] Create implementation plan
 
-### Step 1: shell 抽象化レイヤー
-- [ ] `internal/shell/executor.go` 作成
-- [ ] `Executor` interface 定義
-- [ ] `RealExecutor` 実装
-- [ ] `MockExecutor` 実装
-- [ ] `internal/shell/executor_test.go` 作成
-- [ ] テストカバレッジ 85% 以上達成
-- [ ] テスト実行: `go test -v ./internal/shell/...`
+### Step 1: Shell Abstraction Layer
+- [ ] Create `internal/shell/executor.go`
+- [ ] Define `Executor` interface
+- [ ] Implement `RealExecutor`
+- [ ] Implement `MockExecutor`
+- [ ] Create `internal/shell/executor_test.go`
+- [ ] Achieve test coverage 85% or above
+- [ ] Run tests: `go test -v ./internal/shell/...`
 
-### Step 2: git パッケージ DI
-- [ ] `internal/git/worktree.go` に `WithExecutor` 関数追加
-- [ ] 全 `exec.Command` 呼び出しを置き換え
-- [ ] 既存関数をラッパーとして維持
-- [ ] 既存テストがパスすることを確認
-- [ ] 新規テスト追加
+### Step 2: git Package DI
+- [ ] Add `WithExecutor` functions to `internal/git/worktree.go`
+- [ ] Replace all `exec.Command` calls
+- [ ] Keep existing functions as wrappers
+- [ ] Verify existing tests pass
+- [ ] Add new tests
 
-### Step 3: fzf 統合
-- [ ] `internal/fzf/selector.go` 作成
-- [ ] `Selector` interface 定義
-- [ ] `FzfSelector` 実装
-- [ ] Ctrl+C ハンドリング実装
-- [ ] `MockSelector` 実装
-- [ ] `internal/fzf/selector_test.go` 作成
-- [ ] テストカバレッジ 80% 以上達成
-- [ ] テスト実行: `go test -v ./internal/fzf/...`
+### Step 3: fzf Integration
+- [ ] Create `internal/fzf/selector.go`
+- [ ] Define `Selector` interface
+- [ ] Implement `FzfSelector`
+- [ ] Implement Ctrl+C handling
+- [ ] Implement `MockSelector`
+- [ ] Create `internal/fzf/selector_test.go`
+- [ ] Achieve test coverage 80% or above
+- [ ] Run tests: `go test -v ./internal/fzf/...`
 
-### Step 4: runAdd 分割
-- [ ] `cmd/add.go` に `addOptions` 構造体追加
-- [ ] `determineBranch` 実装
-- [ ] `getBranchFromPR` 実装
-- [ ] `selectBranchInteractive` 実装
-- [ ] `checkExistingWorktree` 実装
-- [ ] `ensureBranchExists` 実装
-- [ ] `fetchBranchIfRemoteExists` 実装
-- [ ] 新 `runAdd` 実装
-- [ ] 複雑度が 10 以下になったことを確認
-- [ ] 既存テストがパスすることを確認
+### Step 4: Split runAdd
+- [ ] Add `addOptions` structure to `cmd/add.go`
+- [ ] Implement `determineBranch`
+- [ ] Implement `getBranchFromPR`
+- [ ] Implement `selectBranchInteractive`
+- [ ] Implement `checkExistingWorktree`
+- [ ] Implement `ensureBranchExists`
+- [ ] Implement `fetchBranchIfRemoteExists`
+- [ ] Implement new `runAdd`
+- [ ] Verify complexity is 10 or below
+- [ ] Verify existing tests pass
 
-### Step 5: sw/rm の FzfSelector 移行
-- [ ] `cmd/fzf.go` を `fzf.Selector` 使用に変更
-- [ ] `cmd/sw.go` の変更
-- [ ] `cmd/rm.go` の変更
-- [ ] 既存テストがパスすることを確認
+### Step 5: Migrate sw/rm to FzfSelector
+- [ ] Change `cmd/fzf.go` to use `fzf.Selector`
+- [ ] Modify `cmd/sw.go`
+- [ ] Modify `cmd/rm.go`
+- [ ] Verify existing tests pass
 
-### Step 6: github パッケージ DI
-- [ ] `internal/github/pr.go` に `WithExecutor` 関数追加
-- [ ] 既存テストがパスすることを確認
-- [ ] 新規テスト追加
+### Step 6: github Package DI
+- [ ] Add `WithExecutor` function to `internal/github/pr.go`
+- [ ] Verify existing tests pass
+- [ ] Add new tests
 
-### Step 7: 統合テスト
-- [ ] 全パッケージのテスト実行
-- [ ] カバレッジレポート生成
-- [ ] ビルド成功確認
-- [ ] Docker 内で動作確認
+### Step 7: Integration Tests
+- [ ] Run tests for all packages
+- [ ] Generate coverage report
+- [ ] Verify build success
+- [ ] Functional verification in Docker
 
-### Step 8: コード品質
-- [ ] `go fmt` でフォーマット確認
-- [ ] `go vet` で静的解析
-- [ ] `gocyclo` で複雑度確認
+### Step 8: Code Quality
+- [ ] Format check with `go fmt`
+- [ ] Static analysis with `go vet`
+- [ ] Complexity check with `gocyclo`
 
-### Step 9: リグレッションテスト
-- [ ] 全既存テストがパス
-- [ ] エッジケースのテスト
+### Step 9: Regression Testing
+- [ ] All existing tests pass
+- [ ] Edge case testing
 
-### Phase 1 完了確認
-- [ ] shell 抽象化レイヤー完成 (15箇所の `exec.Command` 移行完了)
-- [ ] fzf 統合完成 (3箇所の統一)
-- [ ] `runAdd` 複雑度 10 以下達成
-- [ ] テストカバレッジ目標達成:
+### Phase 1 Completion Verification
+- [ ] Shell abstraction layer complete (15 `exec.Command` migrations complete)
+- [ ] fzf integration complete (3 locations unified)
+- [ ] `runAdd` complexity below 10 achieved
+- [ ] Test coverage targets achieved:
   - [ ] `internal/shell`: 85%+
   - [ ] `internal/fzf`: 80%+
   - [ ] `internal/git`: 40%+
   - [ ] `internal/github`: 50%+
   - [ ] `cmd`: 30%+
-- [ ] 全テストがパス
-- [ ] Docker 環境でビルド成功
-- [ ] Phase 2 移行準備完了
+- [ ] All tests pass
+- [ ] Build success in Docker environment
+- [ ] Ready for Phase 2 transition
 
 ---
 
-## 補足情報
+## Additional Information
 
-### Go 1.23 の活用
-このプロジェクトは Go 1.23 を使用しているため、以下の機能を活用できます:
-- イテレータパターン (range over function)
-- `slices` パッケージの強化
-- `cmp.Or` などの便利関数
+### Utilizing Go 1.23
+This project uses Go 1.23, so the following features can be utilized:
+- Iterator pattern (range over function)
+- Enhanced `slices` package
+- Convenient functions like `cmp.Or`
 
-ただし、Phase 1 では基本的なリファクタリングに集中するため、これらの高度な機能の導入は Phase 2 以降で検討します。
+However, Phase 1 focuses on basic refactoring, so introduction of these advanced features will be considered in Phase 2 and beyond.
 
-### Cobra フレームワークとの統合
-- `cmd/*` の構造は Cobra の規約に従っています
-- `RunE` フィールドでエラーを返す関数を使用
-- フラグは `init()` で定義
+### Integration with Cobra Framework
+- The `cmd/*` structure follows Cobra conventions
+- Use functions that return errors in the `RunE` field
+- Define flags in `init()`
 
-### Docker 開発環境
+### Docker Development Environment
 ```bash
-# テスト実行
+# Run tests
 docker compose run --rm dev go test -v ./...
 
-# ビルド
+# Build
 docker compose run --rm dev go build -o gw .
 
-# カバレッジ
+# Coverage
 docker compose run --rm dev go test -coverprofile=coverage.out ./...
 docker compose run --rm dev go tool cover -html=coverage.out -o coverage.html
 ```
 
-### 実装時の注意点
-1. **後方互換性**: 既存の関数は削除せず、新しい `WithExecutor` 版を追加
-2. **テストファースト**: 新規パッケージは interface とテストから実装
-3. **段階的移行**: 各ステップで動作確認を行い、問題があれば即座に対処
-4. **ドキュメント**: 各 interface と構造体には適切なコメントを記載
+### Implementation Notes
+1. **Backward Compatibility**: Don't delete existing functions, add new `WithExecutor` versions
+2. **Test First**: Implement new packages from interface and tests
+3. **Gradual Migration**: Verify functionality at each step, address issues immediately
+4. **Documentation**: Write appropriate comments for each interface and structure

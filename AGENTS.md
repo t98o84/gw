@@ -1,99 +1,99 @@
-# AGENTS.md - AI エージェント向け開発ガイド
+# AGENTS.md - Development Guide for AI Agents
 
-このドキュメントは AI エージェント（GitHub Copilot、Claude 等）がこのプロジェクトで作業する際のガイドラインです。
+This document provides guidelines for AI agents (GitHub Copilot, Claude, etc.) working on this project.
 
-## 開発環境
+## Development Environment
 
-### ⚠️ 重要: Docker 環境を使用すること
+### ⚠️ Important: Use Docker Environment
 
-**ローカル環境ではなく、必ず Docker 環境で開発・ビルド・テストを行ってください。**
+**Always use Docker environment for development, building, and testing, not local environment.**
 
 ```bash
-# 開発コンテナに入る
+# Enter development container
 docker compose run --rm dev sh
 
-# または直接コマンドを実行
+# Or execute commands directly
 docker compose run --rm dev go test ./...
 docker compose run --rm dev go build -o gw .
 ```
 
-### コマンド例
+### Command Examples
 
 ```bash
-# テスト実行
+# Run tests
 docker compose run --rm dev go test ./...
 
-# 詳細なテスト出力
+# Detailed test output
 docker compose run --rm dev go test ./... -v
 
-# ビルド（Linux 向け）
+# Build (for Linux)
 docker compose run --rm dev go build -o gw .
 
-# ビルド（macOS Apple Silicon 向け）
+# Build (for macOS Apple Silicon)
 docker compose run --rm dev sh -c "CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o gw ."
 
-# ビルド（macOS Intel 向け）
+# Build (for macOS Intel)
 docker compose run --rm dev sh -c "CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o gw ."
 
 # go mod tidy
 docker compose run --rm dev go mod tidy
 
-# フォーマット
+# Format
 docker compose run --rm dev go fmt ./...
 ```
 
-## プロジェクト構成
+## Project Structure
 
 ```
 gw/
-├── main.go              # エントリーポイント
-├── cmd/                 # Cobra コマンド
-│   ├── root.go          # ルートコマンド
-│   ├── add.go           # gw add - ワークツリー作成
-│   ├── rm.go            # gw rm - ワークツリー削除（複数選択対応）
-│   ├── ls.go            # gw ls - ワークツリー一覧
-│   ├── sw.go            # gw sw - ワークツリー切り替え
-│   ├── exec.go          # gw exec - ワークツリーでコマンド実行
-│   ├── fd.go            # gw fd - fzf でワークツリー検索
-│   ├── init.go          # gw init - シェル統合スクリプト出力
-│   └── fzf.go           # fzf ヘルパー関数
+├── main.go              # Entry point
+├── cmd/                 # Cobra commands
+│   ├── root.go          # Root command
+│   ├── add.go           # gw add - Create worktree
+│   ├── rm.go            # gw rm - Remove worktree (multiple selection support)
+│   ├── ls.go            # gw ls - List worktrees
+│   ├── sw.go            # gw sw - Switch worktree
+│   ├── exec.go          # gw exec - Execute command in worktree
+│   ├── fd.go            # gw fd - Search worktree with fzf
+│   ├── init.go          # gw init - Output shell integration script
+│   └── fzf.go           # fzf helper functions
 ├── internal/
-│   ├── git/             # Git 操作
-│   │   ├── worktree.go  # git worktree 操作
-│   │   └── naming.go    # 命名規則変換
+│   ├── git/             # Git operations
+│   │   ├── worktree.go  # git worktree operations
+│   │   └── naming.go    # Naming convention conversion
 │   └── github/          # GitHub API
-│       └── pr.go        # PR からブランチ取得
+│       └── pr.go        # Get branch from PR
 ├── go.mod
 ├── go.sum
 ├── Dockerfile
 └── compose.yaml
 ```
 
-## コーディング規約
+## Coding Conventions
 
-### 言語
-- コード内コメント: 英語
-- コミットメッセージ: 英語
-- ドキュメント（README 等）: 日本語
+### Language
+- Code comments: English
+- Commit messages: English
+- Documentation (README, etc.): English
 
-### スタイル
-- Go の標準的なフォーマット（`go fmt`）に従う
-- エラーは適切にラップして返す（`fmt.Errorf("context: %w", err)`）
-- 外部コマンド実行時は `os/exec` を使用
+### Style
+- Follow standard Go formatting (`go fmt`)
+- Wrap errors appropriately (`fmt.Errorf("context: %w", err)`)
+- Use `os/exec` for executing external commands
 
-### テスト
-- テストファイルは `*_test.go` の命名規則
-- fzf など対話的な入力が必要な関数は直接呼び出さない
-- テーブル駆動テストを推奨
+### Testing
+- Test files follow `*_test.go` naming convention
+- Don't directly call functions requiring interactive input like fzf
+- Table-driven tests are recommended
 
-## 依存関係
+## Dependencies
 
-- [github.com/spf13/cobra](https://github.com/spf13/cobra) - CLI フレームワーク
-- [github.com/google/go-github](https://github.com/google/go-github) - GitHub API クライアント
-- [golang.org/x/oauth2](https://pkg.go.dev/golang.org/x/oauth2) - OAuth2 認証
+- [github.com/spf13/cobra](https://github.com/spf13/cobra) - CLI framework
+- [github.com/google/go-github](https://github.com/google/go-github) - GitHub API client
+- [golang.org/x/oauth2](https://pkg.go.dev/golang.org/x/oauth2) - OAuth2 authentication
 
-## 注意事項
+## Notes
 
-1. **fzf 関連のテスト**: fzf は対話的な入力を必要とするため、テストでは直接呼び出さないこと
-2. **git コマンド**: `internal/git` パッケージ経由で実行。テスト時は git リポジトリ外で実行される可能性がある
-3. **GitHub API**: 認証には `GITHUB_TOKEN`、`GH_TOKEN` 環境変数、または `gh auth token` を使用
+1. **fzf-related tests**: Do not directly call fzf in tests as it requires interactive input
+2. **git commands**: Execute through the `internal/git` package. Tests may run outside a git repository
+3. **GitHub API**: Use `GITHUB_TOKEN`, `GH_TOKEN` environment variables, or `gh auth token` for authentication
