@@ -34,6 +34,13 @@ changelog:
   # Disable built-in changelog generation (use git-cliff instead)
   disable: true
 
+git:
+  # Allow dirty state since we generate RELEASE_NOTES.md during CI
+  ignore_tags:
+    - "*"
+  # Skip validation to allow untracked RELEASE_NOTES.md
+  allow_dirty: true
+
 brews:
   - repository:
       owner: t98o84
