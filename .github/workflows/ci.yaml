@@ -73,13 +73,15 @@ jobs:
 
       - name: Generate CHANGELOG with git-cliff
         run: |
-          docker run --rm -v "$PWD:/workspace" gw-release:latest \
-            git-cliff --tag "${{ github.ref_name }}" -o CHANGELOG.md
+          docker run --rm -v "$PWD:/workspace" -w /workspace gw-release:latest sh -c '\
+            git config --global --add safe.directory /workspace && \
+            git-cliff --config .cliff.toml --tag "${{ github.ref_name }}" -o CHANGELOG.md'
 
       - name: Run GoReleaser
         run: |
-          docker run --rm -v "$PWD:/workspace" \
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
             -e HOMEBREW_TAP_GITHUB_TOKEN="${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}" \
-            gw-release:latest \
-            goreleaser release --clean --release-notes CHANGELOG.md
+            gw-release:latest sh -c '\
+            git config --global --add safe.directory /workspace && \
+            goreleaser release --clean --release-notes CHANGELOG.md'
