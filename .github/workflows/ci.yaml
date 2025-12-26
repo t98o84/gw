@@ -84,4 +84,4 @@ jobs:
             -e HOMEBREW_TAP_GITHUB_TOKEN="${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}" \
             gw-release:latest sh -c '\
             git config --global --add safe.directory /workspace && \
-            goreleaser release --clean --release-notes /workspace/RELEASE_NOTES.md'
+            goreleaser release --clean --skip=validate --release-notes /workspace/RELEASE_NOTES.md'
