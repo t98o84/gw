@@ -148,19 +148,19 @@ hooks:
 
 All hooks specify shell commands in the `command` field.
 
-**Basic command**
+#### Basic command
 ```yaml
 - command: npm install
 ```
 
-**Execute command with environment variables**
+#### Execute command with environment variables
 ```yaml
 - command: npm install
   env:
     NODE_ENV: development
 ```
 
-**Multi-line commands**
+#### Multi-line commands
 ```yaml
 - command: |
     echo "Setting up worktree..."
@@ -334,6 +334,7 @@ gw add --pr 123 --open -e vim
 ```bash
 gw ls
 # Output format: <directory name>\t<branch name>\t<commit hash>\t<main marker>
+# Note: The tabs (\t) below are intentional - they represent the actual tab-separated output format
 # ex-repo	main	a1b2c3d	(main)
 # ex-repo-feature-hoge	feature/hoge	b4e5f6c
 # ex-repo-fix-foo	fix/foo	c7d8e9f

@@ -44,7 +44,7 @@ docker compose run --rm dev go fmt ./...
 
 ## Project Structure
 
-```
+```text
 gw/
 ├── main.go              # Entry point
 ├── cmd/                 # Cobra commands
