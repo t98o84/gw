@@ -61,22 +61,22 @@ func executeCommandHook(hook Hook, worktreePath, branch, repoRoot string, index 
 	fmt.Printf("⚙️  Hook %d: Executing command: %s\n", index+1, hook.Command)
 
 	cmd := exec.Command("sh", "-c", hook.Command)
-	cmd.Dir = worktreePath
+	cmd.Dir = repoRoot
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	// Set environment variables with gw-specific variables
 	cmd.Env = os.Environ()
-	// Add gw-specific environment variables
+	// Add user-defined environment variables first
+	for key, value := range hook.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
+	// Add gw-specific environment variables (these take precedence)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("GW_WORKTREE_PATH=%s", worktreePath),
 		fmt.Sprintf("GW_BRANCH=%s", branch),
 		fmt.Sprintf("GW_REPO_ROOT=%s", repoRoot),
 	)
-	// Add user-defined environment variables (can override gw-specific ones)
-	for key, value := range hook.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
-	}
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("command execution failed: %w", err)

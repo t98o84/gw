@@ -329,8 +329,7 @@ func createWorktree(repoName, branch string, createBranch bool, openEditor strin
 		return fmt.Errorf("failed to get repository root: %w", err)
 	}
 	projectConfig, err := config.FindProjectConfig(repoRoot)
-	if err != nil && !os.IsNotExist(err) {
-		// Only return error if it's not a "file not found" error
+	if err != nil {
 		return fmt.Errorf("failed to load project config: %w", err)
 	}
 

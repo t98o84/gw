@@ -10,9 +10,9 @@ import (
 func TestExecuteHooks(t *testing.T) {
 	tests := []struct {
 		name         string
-		setupFunc    func() (string, *ProjectConfig, string, string)
+		setupFunc    func() (worktreePath string, config *ProjectConfig, branch string, repoRoot string)
 		expectError  bool
-		validateFunc func(*testing.T, string)
+		validateFunc func(*testing.T, string, string)
 	}{
 		{
 			name: "nil project config",
@@ -51,8 +51,8 @@ func TestExecuteHooks(t *testing.T) {
 				return dir, cfg, "feature/test", dir
 			},
 			expectError: false,
-			validateFunc: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, "test.txt"))
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				content, err := os.ReadFile(filepath.Join(repoRoot, "test.txt"))
 				if err != nil {
 					t.Errorf("failed to read command output: %v", err)
 				}
@@ -80,8 +80,8 @@ func TestExecuteHooks(t *testing.T) {
 				return dir, cfg, "feature/test", dir
 			},
 			expectError: false,
-			validateFunc: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, "output.txt"))
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				content, err := os.ReadFile(filepath.Join(repoRoot, "output.txt"))
 				if err != nil {
 					t.Errorf("failed to read command output: %v", err)
 				}
@@ -107,17 +107,21 @@ func TestExecuteHooks(t *testing.T) {
 				return dir, cfg, "feature/test", repoRoot
 			},
 			expectError: false,
-			validateFunc: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, "env_test.txt"))
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				content, err := os.ReadFile(filepath.Join(repoRoot, "env_test.txt"))
 				if err != nil {
 					t.Errorf("failed to read command output: %v", err)
+					return
 				}
 				output := strings.TrimSpace(string(content))
 				if !strings.Contains(output, "feature/test") {
 					t.Errorf("expected GW_BRANCH in output, got: %s", output)
 				}
-				if !strings.Contains(output, dir) {
-					t.Errorf("expected GW_WORKTREE_PATH in output, got: %s", output)
+				if !strings.Contains(output, worktreePath) {
+					t.Errorf("expected GW_WORKTREE_PATH (%s) in output, got: %s", worktreePath, output)
+				}
+				if !strings.Contains(output, repoRoot) {
+					t.Errorf("expected GW_REPO_ROOT (%s) in output, got: %s", repoRoot, output)
 				}
 			},
 		},
@@ -140,11 +144,11 @@ func TestExecuteHooks(t *testing.T) {
 				return dir, cfg, "main", dir
 			},
 			expectError: false,
-			validateFunc: func(t *testing.T, dir string) {
-				if _, err := os.Stat(filepath.Join(dir, "first.txt")); os.IsNotExist(err) {
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				if _, err := os.Stat(filepath.Join(repoRoot, "first.txt")); os.IsNotExist(err) {
 					t.Error("first.txt file not created")
 				}
-				if _, err := os.Stat(filepath.Join(dir, "second.txt")); os.IsNotExist(err) {
+				if _, err := os.Stat(filepath.Join(repoRoot, "second.txt")); os.IsNotExist(err) {
 					t.Error("second.txt file not created")
 				}
 			},
@@ -167,8 +171,8 @@ echo "Line 3" >> output.txt`,
 				return dir, cfg, "feature/multiline", dir
 			},
 			expectError: false,
-			validateFunc: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, "output.txt"))
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				content, err := os.ReadFile(filepath.Join(repoRoot, "output.txt"))
 				if err != nil {
 					t.Errorf("failed to read command output: %v", err)
 				}
@@ -204,8 +208,8 @@ echo "Line 3" >> output.txt`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir, cfg, branch, repoRoot := tt.setupFunc()
-			err := ExecuteHooks(cfg, HookPostAdd, dir, branch, repoRoot)
+			worktreePath, cfg, branch, repoRoot := tt.setupFunc()
+			err := ExecuteHooks(cfg, HookPostAdd, worktreePath, branch, repoRoot)
 
 			if tt.expectError {
 				if err == nil {
@@ -219,7 +223,7 @@ echo "Line 3" >> output.txt`,
 			}
 
 			if tt.validateFunc != nil {
-				tt.validateFunc(t, dir)
+				tt.validateFunc(t, worktreePath, repoRoot)
 			}
 		})
 	}
