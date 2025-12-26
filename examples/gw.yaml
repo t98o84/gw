@@ -1,0 +1,93 @@
+# gw project configuration file
+# Place this file in your project root directory
+
+# Hooks that are executed automatically during worktree lifecycle
+hooks:
+  # Hooks executed before worktree creation
+  pre_add:
+    # Example: Validate branch name pattern
+    - command: |
+        if ! echo "$GW_BRANCH" | grep -qE '^(feature|fix|hotfix)/'; then
+          echo "Branch name must start with feature/, fix/, or hotfix/"
+          exit 1
+        fi
+    
+    # Example: Check disk space
+    - command: |
+        echo "Checking disk space before creating worktree..."
+        df -h .
+
+  # Hooks executed after worktree creation
+  post_add:
+    # Example 1: Copy environment file
+    - command: cp .env.example .env
+    
+    # Example 2: Install dependencies
+    - command: npm install
+      env:
+        NODE_ENV: development
+    
+    # Example 3: Run multiple commands
+    - command: |
+        echo "Setting up worktree..."
+        bundle install
+        rake db:migrate
+    
+    # Example 4: Copy multiple files
+    - command: cp config/database.yml.example config/database.yml
+    
+    # Example 5: Run command without environment variables
+    - command: go mod download
+    
+    # Example 6: Use gw-specific environment variables
+    - command: |
+        echo "Worktree: $GW_WORKTREE_PATH"
+        echo "Branch: $GW_BRANCH"
+        echo "Repo root: $GW_REPO_ROOT"
+
+  # Hooks executed before worktree removal
+  pre_remove:
+    # Example 1: Backup important data
+    - command: |
+        echo "Backing up data from $GW_WORKTREE_PATH"
+        tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
+    
+    # Example 2: Stop running services
+    - command: |
+        if [ -f "$GW_WORKTREE_PATH/docker-compose.yml" ]; then
+          docker-compose -f "$GW_WORKTREE_PATH/docker-compose.yml" down
+        fi
+
+  # Hooks executed after worktree removal
+  post_remove:
+    # Example 1: Clean up artifacts
+    - command: echo "Cleaned up worktree for $GW_BRANCH"
+    
+    # Example 2: Notify external system
+    - command: |
+        curl -X POST https://example.com/webhook \
+          -d "branch=$GW_BRANCH" \
+          -d "action=removed"
+
+# Available environment variables:
+#
+# gw automatically sets the following environment variables:
+# - GW_WORKTREE_PATH: Absolute path to the worktree directory
+# - GW_BRANCH: Branch name of the worktree
+# - GW_REPO_ROOT: Absolute path to the main repository root
+#
+# You can also set custom environment variables using the 'env' field.
+# Custom variables can override gw-specific variables if needed.
+#
+# Hook types:
+# - pre_add: Executed BEFORE worktree creation (use for validation, preparation)
+# - post_add: Executed AFTER worktree creation (use for setup, initialization)
+# - pre_remove: Executed BEFORE worktree removal (use for backup, cleanup)
+# - post_remove: Executed AFTER worktree removal (use for notification, final cleanup)
+#
+# Notes:
+# - Hooks are executed in the order they are defined
+# - Commands are executed in the worktree directory (or repo root for pre_add)
+# - If a pre_add or pre_remove hook fails, the operation is aborted
+# - If a post_add or post_remove hook fails, a warning is displayed but the operation continues
+# - Use multiline commands with | for complex scripts
