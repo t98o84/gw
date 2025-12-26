@@ -35,6 +35,24 @@ var addCmd = &cobra.Command{
 The worktree will be created in a sibling directory with the naming convention:
   <repo-name>-<branch-suffix>
 
+Hooks:
+  You can configure project-specific hooks in gw.yaml at the repository root.
+  Available hooks: pre_add, post_add
+  
+  Hooks receive these environment variables:
+    - GW_WORKTREE_PATH: Path to the worktree
+    - GW_BRANCH: Branch name
+    - GW_REPO_ROOT: Repository root path
+  
+  Example gw.yaml:
+    hooks:
+      pre_add:
+        - name: "Validate branch name"
+          command: echo "Creating worktree for $GW_BRANCH"
+      post_add:
+        - name: "Install dependencies"
+          command: cd "$GW_WORKTREE_PATH" && npm install
+
 Examples:
   gw add feature/hoge
     Creates ../ex-repo-feature-hoge/ and checks out feature/hoge

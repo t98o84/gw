@@ -31,6 +31,26 @@ The name can be specified in various formats:
   - Suffix: feature-hoge
   - Full directory name: ex-repo-feature-hoge
 
+Hooks:
+  You can configure project-specific hooks in gw.yaml at the repository root.
+  Available hooks: pre_remove, post_remove
+  
+  Hooks receive these environment variables:
+    - GW_WORKTREE_PATH: Path to the worktree
+    - GW_BRANCH: Branch name
+    - GW_REPO_ROOT: Repository root path
+  
+  Example gw.yaml:
+    hooks:
+      pre_remove:
+        - name: "Backup data"
+          command: |
+            echo "Backing up data from $GW_WORKTREE_PATH"
+            tar -czf "backup-$GW_BRANCH.tar.gz" "$GW_WORKTREE_PATH"
+      post_remove:
+        - name: "Clean up artifacts"
+          command: echo "Cleaned up worktree for $GW_BRANCH"
+
 Examples:
   gw rm feature/hoge
   gw rm feature/hoge feature/fuga   # Remove multiple worktrees
@@ -148,6 +168,16 @@ func runRm(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Load project config for hooks
+	repoRoot, err := git.GetRepoRoot()
+	if err != nil {
+		return fmt.Errorf("failed to get repository root: %w", err)
+	}
+	projectConfig, err := config.FindProjectConfig(repoRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load project config: %w", err)
+	}
+
 	// Remove all selected worktrees
 	for _, wt := range worktrees {
 		if wt.IsMain {
@@ -155,11 +185,26 @@ func runRm(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
+		// Execute pre-remove hooks
+		if projectConfig != nil && len(projectConfig.Hooks.PreRemove) > 0 {
+			if err := config.ExecuteHooks(projectConfig, config.HookPreRemove, wt.Path, wt.Branch, repoRoot); err != nil {
+				return fmt.Errorf("pre-remove hook failed: %w", err)
+			}
+		}
+
 		fmt.Printf("Removing worktree: %s\n", wt.Path)
 		if err := git.Remove(wt.Path, mergedConfig.Rm.Force); err != nil {
 			return fmt.Errorf("failed to remove %s: %w", wt.Path, err)
 		}
 		fmt.Printf("✓ Worktree removed: %s\n", wt.Path)
+
+		// Execute post-remove hooks
+		if projectConfig != nil && len(projectConfig.Hooks.PostRemove) > 0 {
+			if err := config.ExecuteHooks(projectConfig, config.HookPostRemove, wt.Path, wt.Branch, repoRoot); err != nil {
+				// Don't fail if post-remove hooks fail, just warn
+				fmt.Printf("⚠ Post-remove hook failed: %v\n", err)
+			}
+		}
 
 		// Delete branch if requested
 		if mergedConfig.Rm.Branch && wt.Branch != "" {

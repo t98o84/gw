@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/t98o84/gw/internal/config"
 	"github.com/t98o84/gw/internal/errors"
 	"github.com/t98o84/gw/internal/fzf"
 	"github.com/t98o84/gw/internal/git"
@@ -321,6 +322,25 @@ func createWorktree(repoName, branch string, createBranch bool, openEditor strin
 	}
 
 	fmt.Printf("Creating worktree at %s for branch %s...\n", wtPath, branch)
+
+	// Load project config for hooks
+	repoRoot, err := git.GetRepoRoot()
+	if err != nil {
+		return fmt.Errorf("failed to get repository root: %w", err)
+	}
+	projectConfig, err := config.FindProjectConfig(repoRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load project config: %w", err)
+	}
+
+	// Execute pre-add hooks
+	if projectConfig != nil && len(projectConfig.Hooks.PreAdd) > 0 {
+		fmt.Println("\nExecuting pre-add hooks...")
+		if err := config.ExecuteHooks(projectConfig, config.HookPreAdd, wtPath, branch, repoRoot); err != nil {
+			return fmt.Errorf("pre-add hook failed: %w", err)
+		}
+	}
+
 	if mockAdd != nil {
 		err = mockAdd(wtPath, branch, createBranch)
 	} else {
@@ -336,6 +356,15 @@ func createWorktree(repoName, branch string, createBranch bool, openEditor strin
 	if mode != syncNone {
 		if err := syncFiles(wtPath, mode); err != nil {
 			fmt.Printf("⚠ Warning: Failed to sync files: %v\n", err)
+		}
+	}
+
+	// Execute post-add hooks from project config
+	if projectConfig != nil && len(projectConfig.Hooks.PostAdd) > 0 {
+		fmt.Println("\nExecuting post-add hooks...")
+		if err := config.ExecuteHooks(projectConfig, config.HookPostAdd, wtPath, branch, repoRoot); err != nil {
+			// Don't fail if post-add hooks fail, just warn
+			fmt.Printf("⚠ Post-add hook failed: %v\n", err)
 		}
 	}
 

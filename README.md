@@ -90,6 +90,168 @@ gw init fish | source
 - **Linux/macOS**: `~/.config/gw/config.yaml` (または `$XDG_CONFIG_HOME/gw/config.yaml`)
 - **Windows**: `%APPDATA%\gw\config.yaml`
 
+### プロジェクト設定（フック機能）
+
+プロジェクトルートに `gw.yaml` を配置することで、ワークツリーのライフサイクルに応じて自動実行されるフックを定義できます。
+
+#### フックの種類
+
+- **pre_add**: ワークツリー作成前に実行（検証、準備作業など）
+- **post_add**: ワークツリー作成後に実行（セットアップ、初期化など）
+- **pre_remove**: ワークツリー削除前に実行（バックアップ、クリーンアップなど）
+- **post_remove**: ワークツリー削除後に実行（通知、最終クリーンアップなど）
+
+#### gw.yaml の例
+
+```yaml
+hooks:
+  # ワークツリー作成前
+  pre_add:
+    # ブランチ名のバリデーション
+    - command: |
+        if ! echo "$GW_BRANCH" | grep -qE '^(feature|fix|hotfix)/'; then
+          echo "Branch name must start with feature/, fix/, or hotfix/"
+          exit 1
+        fi
+  
+  # ワークツリー作成後
+  post_add:
+    # ファイルをコピー
+    - command: cp .env.example .env
+    
+    # コマンドを実行
+    - command: npm install
+      env:
+        NODE_ENV: development
+    
+    # 複数のコマンドも可能
+    - command: |
+        bundle install
+        rake db:migrate
+    
+    # gw の環境変数を利用
+    - command: echo "Setup complete for branch $GW_BRANCH"
+  
+  # ワークツリー削除前
+  pre_remove:
+    # データのバックアップ
+    - command: |
+        echo "Backing up data from $GW_WORKTREE_PATH"
+        tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
+  
+  # ワークツリー削除後
+  post_remove:
+    - command: echo "Cleaned up worktree for $GW_BRANCH"
+```
+
+#### コマンドの実行
+
+すべてのフックは `command` フィールドでシェルコマンドを指定します。
+
+**基本的なコマンド**
+```yaml
+- command: npm install
+```
+
+**環境変数を設定してコマンド実行**
+```yaml
+- command: npm install
+  env:
+    NODE_ENV: development
+```
+
+**複数行のコマンド**
+```yaml
+- command: |
+    echo "Setting up worktree..."
+    bundle install
+    rake db:migrate
+```
+
+#### 利用可能な環境変数
+
+gw は以下の環境変数を自動的に設定します：
+
+- `GW_WORKTREE_PATH`: 作成されたワークツリーの絶対パス
+- `GW_BRANCH`: ブランチ名
+- `GW_REPO_ROOT`: メインリポジトリのルートディレクトリの絶対パス
+
+これらの環境変数はコマンド内で参照できます：
+
+```yaml
+hooks:
+  post_add:
+    - command: echo "Worktree created at $GW_WORKTREE_PATH for branch $GW_BRANCH"
+    - command: ln -s $GW_REPO_ROOT/.env.local .env
+```
+
+`env` フィールドで独自の環境変数を追加することもできます（gw の環境変数を上書きすることも可能）。
+
+#### フックの実行順序とエラーハンドリング
+
+フックは各タイプ内で定義された順番に実行されます。
+
+- **pre_add / pre_remove**: フックが失敗すると操作全体が中止されます
+- **post_add / post_remove**: フックが失敗しても警告が表示されるのみで、操作自体は成功として扱われます
+
+#### 使用例
+
+```bash
+# プロジェクトルートに gw.yaml を配置
+cat << 'EOF' > gw.yaml
+hooks:
+  pre_add:
+    - command: |
+        if ! echo "$GW_BRANCH" | grep -qE '^(feature|fix)/'; then
+          echo "❌ Branch must start with feature/ or fix/"
+          exit 1
+        fi
+  post_add:
+    - command: cp .env.example .env
+    - command: npm install
+EOF
+
+# ワークツリーを作成すると、フックが自動実行される
+gw add feature/new-feature
+# 出力:
+# Executing pre-add hooks...
+# ⚙️  Hook 1: Executing command
+# ✅ Hook 1: Command completed successfully
+# Creating worktree at ../repo-feature-new-feature/ for branch feature/new-feature...
+# ✓ Worktree created: ../repo-feature-new-feature/
+#
+# Executing post-add hooks...
+# ⚙️  Hook 1: Executing command: cp .env.example .env
+# ✅ Hook 1: Command completed successfully
+# ⚙️  Hook 2: Executing command: npm install
+# ... (npm install の出力)
+# ✅ Hook 2: Command completed successfully
+
+# ワークツリーを削除するときもフックが実行される
+gw rm feature/new-feature
+# 出力:
+# Executing pre-remove hooks...
+# ⚙️  Hook 1: Backing up data from /path/to/worktree
+# ✅ Hook 1: Command completed successfully
+# Removing worktree: /path/to/worktree
+# ✓ Worktree removed: /path/to/worktree
+#
+# Executing post-remove hooks...
+# ⚙️  Hook 1: Cleaned up worktree for feature/new-feature
+# ✅ Hook 1: Command completed successfully
+
+# 無効なブランチ名の場合（pre_add で拒否される）
+gw add invalid-branch
+# 出力:
+# Executing pre-add hooks...
+# ⚙️  Hook 1: Executing command
+# ❌ Branch must start with feature/ or fix/
+# ❌ Hook 1: Command failed with exit code 1
+# Error: pre-add hook failed
+```
+
+### ユーザー設定ファイル
+
 #### 設定例
 
 ```yaml
