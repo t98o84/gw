@@ -1,0 +1,29 @@
+# Dockerfile for release builds with GoReleaser and git-cliff
+FROM golang:1.23-alpine AS base
+
+# Install dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash
+
+# Install git-cliff
+RUN curl -sSL https://github.com/orhun/git-cliff/releases/download/v2.6.1/git-cliff-2.6.1-x86_64-unknown-linux-musl.tar.gz | \
+    tar -xz -C /tmp && \
+    mv /tmp/git-cliff-2.6.1/git-cliff /usr/local/bin/ && \
+    chmod +x /usr/local/bin/git-cliff && \
+    rm -rf /tmp/git-cliff-2.6.1
+
+# Install GoReleaser
+RUN curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v2.4.8/goreleaser_Linux_x86_64.tar.gz | \
+    tar -xz -C /tmp && \
+    mv /tmp/goreleaser /usr/local/bin/ && \
+    chmod +x /usr/local/bin/goreleaser && \
+    rm -rf /tmp/goreleaser
+
+WORKDIR /workspace
+
+# Verify installations
+RUN git-cliff --version && goreleaser --version
+
+CMD ["/bin/bash"]

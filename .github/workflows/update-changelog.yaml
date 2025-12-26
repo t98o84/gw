@@ -1,0 +1,55 @@
+name: Update CHANGELOG
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to generate changelog from (leave empty for unreleased)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Build release image
+        run: docker build -f Dockerfile.release -t gw-release:latest .
+
+      - name: Generate CHANGELOG with git-cliff
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            docker run --rm -v "$PWD:/workspace" gw-release:latest \
+              git-cliff --tag "${{ inputs.tag }}" -o CHANGELOG.md
+          else
+            docker run --rm -v "$PWD:/workspace" gw-release:latest \
+              git-cliff -o CHANGELOG.md
+          fi
+
+      - name: Commit and push CHANGELOG
+        run: |
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md"
+            exit 0
+          fi
+          
+          git add CHANGELOG.md
+          if [ -n "${{ inputs.tag }}" ]; then
+            git commit -m "docs: update CHANGELOG for ${{ inputs.tag }} [skip ci]"
+          else
+            git commit -m "docs: update CHANGELOG [skip ci]"
+          fi
+          git push

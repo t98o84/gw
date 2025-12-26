@@ -68,17 +68,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
+      - name: Build release image
+        run: docker build -f Dockerfile.release -t gw-release:latest .
+
+      - name: Generate CHANGELOG with git-cliff
+        run: |
+          docker run --rm -v "$PWD:/workspace" gw-release:latest \
+            git-cliff --tag "${{ github.ref_name }}" -o CHANGELOG.md
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: '~> v2'
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          docker run --rm -v "$PWD:/workspace" \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e HOMEBREW_TAP_GITHUB_TOKEN="${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}" \
+            gw-release:latest \
+            goreleaser release --clean --release-notes CHANGELOG.md
