@@ -71,11 +71,11 @@ jobs:
       - name: Build release image
         run: docker build -f Dockerfile.release -t gw-release:latest .
 
-      - name: Generate CHANGELOG with git-cliff
+      - name: Generate release notes with git-cliff
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace gw-release:latest sh -c '\
             git config --global --add safe.directory /workspace && \
-            git-cliff --config .cliff.toml --tag "${{ github.ref_name }}" -o CHANGELOG.md'
+            git-cliff --config .cliff.toml --tag "${{ github.ref_name }}"' > RELEASE_NOTES.md
 
       - name: Run GoReleaser
         run: |
@@ -84,4 +84,4 @@ jobs:
             -e HOMEBREW_TAP_GITHUB_TOKEN="${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}" \
             gw-release:latest sh -c '\
             git config --global --add safe.directory /workspace && \
-            goreleaser release --clean --release-notes CHANGELOG.md'
+            goreleaser release --clean --release-notes /workspace/RELEASE_NOTES.md'
