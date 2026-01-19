@@ -16,6 +16,9 @@ func TestNewConfig(t *testing.T) {
 	if cfg.Add.SyncIgnored != false {
 		t.Errorf("NewConfig() Add.SyncIgnored = %v, want false", cfg.Add.SyncIgnored)
 	}
+	if cfg.Add.From != "" {
+		t.Errorf("NewConfig() Add.From = %v, want empty string", cfg.Add.From)
+	}
 	if cfg.Close.Force != false {
 		t.Errorf("NewConfig() Close.Force = %v, want false", cfg.Close.Force)
 	}
@@ -446,6 +449,7 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 				tt.rmBranchFlag,
 				nil,
 				nil,
+				nil,
 				tt.noOpenFlag,
 				tt.noSyncFlag,
 				tt.noSyncIgnoredFlag,
@@ -473,6 +477,80 @@ func TestConfig_MergeWithFlags(t *testing.T) {
 			}
 			if merged.Rm.Branch != tt.wantRmBranch {
 				t.Errorf("MergeWithFlags() Rm.Branch = %v, want %v", merged.Rm.Branch, tt.wantRmBranch)
+			}
+		})
+	}
+}
+
+func TestConfig_MergeWithFlags_From(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *Config
+		fromFlag *string
+		wantFrom string
+	}{
+		{
+			name: "no from flag, use config",
+			config: &Config{
+				Add: AddConfig{
+					From: "origin/main",
+				},
+			},
+			fromFlag: nil,
+			wantFrom: "origin/main",
+		},
+		{
+			name: "from flag overrides config",
+			config: &Config{
+				Add: AddConfig{
+					From: "origin/main",
+				},
+			},
+			fromFlag: stringPtr("origin/develop"),
+			wantFrom: "origin/develop",
+		},
+		{
+			name: "empty from flag does not override config",
+			config: &Config{
+				Add: AddConfig{
+					From: "origin/main",
+				},
+			},
+			fromFlag: stringPtr(""),
+			wantFrom: "origin/main",
+		},
+		{
+			name: "no config, no flag",
+			config: &Config{
+				Add: AddConfig{
+					From: "",
+				},
+			},
+			fromFlag: nil,
+			wantFrom: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			merged := tt.config.MergeWithFlags(
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				tt.fromFlag,
+				false,
+				false,
+				false,
+				false,
+				false,
+				false,
+			)
+			if merged.Add.From != tt.wantFrom {
+				t.Errorf("MergeWithFlags() Add.From = %v, want %v", merged.Add.From, tt.wantFrom)
 			}
 		})
 	}

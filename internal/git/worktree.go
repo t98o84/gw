@@ -133,10 +133,13 @@ func List() ([]Worktree, error) {
 }
 
 // Add creates a new worktree
-func (m *Manager) Add(path string, branch string, createBranch bool) error {
+func (m *Manager) Add(path string, branch string, createBranch bool, from string) error {
 	args := []string{"worktree", "add"}
 	if createBranch {
 		args = append(args, "-b", branch, path)
+		if from != "" {
+			args = append(args, from)
+		}
 	} else {
 		args = append(args, path, branch)
 	}
@@ -149,8 +152,8 @@ func (m *Manager) Add(path string, branch string, createBranch bool) error {
 }
 
 // Add is a package-level wrapper for backward compatibility
-func Add(path string, branch string, createBranch bool) error {
-	return defaultManager.Add(path, branch, createBranch)
+func Add(path string, branch string, createBranch bool, from string) error {
+	return defaultManager.Add(path, branch, createBranch, from)
 }
 
 // Remove removes a worktree

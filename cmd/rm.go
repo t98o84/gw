@@ -104,6 +104,7 @@ func runRm(cmd *cobra.Command, args []string) error {
 		branchFlagPtr,
 		nil,
 		nil,
+		nil,
 		false,
 		false,
 		false,

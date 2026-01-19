@@ -21,6 +21,14 @@ add:
   # Default: false
   sync_ignored: false
 
+  # Default base branch/commit for creating new worktrees
+  # This is used when creating a new branch with -b flag
+  # Can be a branch name (e.g., "origin/main", "develop") or a commit hash
+  # Command-line argument takes precedence over this config value
+  # Examples: "origin/main", "origin/develop", "main", "HEAD~1"
+  # Default: "" (empty string - uses current branch)
+  # from: origin/main
+
 # Close command configuration
 close:
   # Automatically confirm worktree deletion without prompting

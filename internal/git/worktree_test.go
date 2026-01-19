@@ -595,6 +595,7 @@ func TestManager_Add(t *testing.T) {
 		path         string
 		branch       string
 		createBranch bool
+		from         string
 		mock         *shell.MockExecutor
 		wantErr      bool
 	}{
@@ -603,6 +604,7 @@ func TestManager_Add(t *testing.T) {
 			path:         "/path/to/worktree",
 			branch:       "feature/test",
 			createBranch: false,
+			from:         "",
 			mock: &shell.MockExecutor{
 				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
 					if name == "git" && args[0] == "worktree" && args[1] == "add" {
@@ -620,6 +622,7 @@ func TestManager_Add(t *testing.T) {
 			path:         "/path/to/worktree",
 			branch:       "feature/new",
 			createBranch: true,
+			from:         "",
 			mock: &shell.MockExecutor{
 				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
 					if name == "git" && args[0] == "worktree" && args[1] == "add" {
@@ -633,10 +636,29 @@ func TestManager_Add(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:         "add with new branch from specific commit",
+			path:         "/path/to/worktree",
+			branch:       "feature/new",
+			createBranch: true,
+			from:         "origin/main",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "worktree" && args[1] == "add" {
+						if len(args) == 6 && args[2] == "-b" && args[3] == "feature/new" && args[4] == "/path/to/worktree" && args[5] == "origin/main" {
+							return []byte(""), nil
+						}
+					}
+					return nil, fmt.Errorf("unexpected command: %v", args)
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name:         "add fails",
 			path:         "/path/to/worktree",
 			branch:       "feature/test",
 			createBranch: false,
+			from:         "",
 			mock: &shell.MockExecutor{
 				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
 					return nil, fmt.Errorf("failed to add worktree")
@@ -649,7 +671,7 @@ func TestManager_Add(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := NewManager(tt.mock)
-			err := m.Add(tt.path, tt.branch, tt.createBranch)
+			err := m.Add(tt.path, tt.branch, tt.createBranch, tt.from)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Manager.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
