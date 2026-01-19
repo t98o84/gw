@@ -654,6 +654,26 @@ func TestManager_Add(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:         "add existing branch with from parameter (from is ignored)",
+			path:         "/path/to/worktree",
+			branch:       "feature/test",
+			createBranch: false,
+			from:         "origin/main",
+			mock: &shell.MockExecutor{
+				ExecuteFunc: func(name string, args ...string) ([]byte, error) {
+					if name == "git" && args[0] == "worktree" && args[1] == "add" {
+						// When createBranch is false, from should be ignored
+						// Command should be: git worktree add /path/to/worktree feature/test
+						if len(args) == 4 && args[2] == "/path/to/worktree" && args[3] == "feature/test" {
+							return []byte(""), nil
+						}
+					}
+					return nil, fmt.Errorf("unexpected command: %v", args)
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name:         "add fails",
 			path:         "/path/to/worktree",
 			branch:       "feature/test",

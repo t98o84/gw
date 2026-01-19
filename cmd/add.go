@@ -60,8 +60,9 @@ Examples:
   gw add -b feature/new origin/main
     Creates a new branch from origin/main and worktree
 
-  gw add feature/existing origin/develop
-    Creates a worktree for feature/existing based on origin/develop
+  gw add -b feature/new origin/develop
+    Creates a new branch from origin/develop and worktree
+    Note: The 'from' argument only applies when creating a new branch (-b flag)
 
   gw add --pr 123
     Creates a worktree for PR #123
