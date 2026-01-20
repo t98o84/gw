@@ -10,9 +10,10 @@ type Config struct {
 
 // AddConfig represents the configuration for the add command.
 type AddConfig struct {
-	Open        bool `yaml:"open"`
-	Sync        bool `yaml:"sync"`
-	SyncIgnored bool `yaml:"sync_ignored"`
+	Open        bool   `yaml:"open"`
+	Sync        bool   `yaml:"sync"`
+	SyncIgnored bool   `yaml:"sync_ignored"`
+	From        string `yaml:"from,omitempty"`
 }
 
 // CloseConfig represents the configuration for the close command.
@@ -33,6 +34,7 @@ func NewConfig() *Config {
 			Open:        false,
 			Sync:        false,
 			SyncIgnored: false,
+			From:        "",
 		},
 		Close: CloseConfig{
 			Force: false,
@@ -63,6 +65,7 @@ func (c *Config) MergeWithFlags(
 	rmBranchFlag *bool,
 	syncFlag *bool,
 	syncIgnoredFlag *bool,
+	fromFlag *string,
 	noOpenFlag bool,
 	noSyncFlag bool,
 	noSyncIgnoredFlag bool,
@@ -88,6 +91,10 @@ func (c *Config) MergeWithFlags(
 
 	if syncIgnoredFlag != nil {
 		merged.Add.SyncIgnored = *syncIgnoredFlag
+	}
+
+	if fromFlag != nil && *fromFlag != "" {
+		merged.Add.From = *fromFlag
 	}
 
 	if editorFlag != nil && *editorFlag != "" {

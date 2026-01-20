@@ -1,6 +1,13 @@
 # gw project configuration file
 # Place this file in your project root directory
 
+# Add command configuration (optional)
+# These settings can override user-level config for this specific project
+# add:
+#   # Project-specific base branch for creating new branches
+#   # For example, always create new branches from origin/develop in this project
+#   # from: origin/develop
+
 # Hooks that are executed automatically during worktree lifecycle
 hooks:
   # Hooks executed before worktree creation

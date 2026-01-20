@@ -32,7 +32,7 @@ var (
 	mockRemoteBranchExists func(branch string) (bool, error)
 	mockFetchBranch        func(branch string) error
 	mockWorktreePath       func(repoName, branch string) (string, error)
-	mockAdd                func(path string, branch string, createBranch bool) error
+	mockAdd                func(path string, branch string, createBranch bool, from string) error
 	mockOpenInEditor       func(editor, path string) error
 )
 
@@ -309,7 +309,7 @@ func determineSyncMode(configSync, configSyncIgnored, flagSyncAll, flagSyncIgnor
 }
 
 // createWorktree creates a new worktree for the given branch
-func createWorktree(repoName, branch string, createBranch bool, openEditor string, mode syncMode) error {
+func createWorktree(repoName, branch string, createBranch bool, from string, openEditor string, mode syncMode) error {
 	var wtPath string
 	var err error
 	if mockWorktreePath != nil {
@@ -342,9 +342,9 @@ func createWorktree(repoName, branch string, createBranch bool, openEditor strin
 	}
 
 	if mockAdd != nil {
-		err = mockAdd(wtPath, branch, createBranch)
+		err = mockAdd(wtPath, branch, createBranch, from)
 	} else {
-		err = git.Add(wtPath, branch, createBranch)
+		err = git.Add(wtPath, branch, createBranch, from)
 	}
 	if err != nil {
 		return err

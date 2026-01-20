@@ -27,7 +27,7 @@ var (
 )
 
 var addCmd = &cobra.Command{
-	Use:     "add [flags] [branch]",
+	Use:     "add [flags] [branch] [from]",
 	Aliases: []string{"a"},
 	Short:   "Create a new worktree",
 	Long: `Create a new worktree for the specified branch.
@@ -57,15 +57,19 @@ Examples:
   gw add feature/hoge
     Creates ../ex-repo-feature-hoge/ and checks out feature/hoge
 
-  gw add -b feature/new
-    Creates a new branch and worktree
+  gw add -b feature/new origin/main
+    Creates a new branch from origin/main and worktree
+
+  gw add -b feature/new origin/develop
+    Creates a new branch from origin/develop and worktree
+    Note: The 'from' argument only applies when creating a new branch (-b flag)
 
   gw add --pr 123
     Creates a worktree for PR #123
 
   gw add
     Interactive branch selection with fzf`,
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.MaximumNArgs(2),
 	RunE: runAdd,
 }
 
@@ -130,6 +134,15 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("sync-ignored") {
 		syncIgnoredFlagPtr = &flagSyncIgnored
 	}
+
+	// Extract from argument (second argument) - this takes highest priority
+	var from string
+	var fromFlagPtr *string
+	if len(args) >= 2 {
+		from = args[1]
+		fromFlagPtr = &from
+	}
+
 	mergedConfig := globalConfig.MergeWithFlags(
 		openFlagPtr,
 		editorFlagPtr,
@@ -138,6 +151,7 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 		nil,
 		syncFlagPtr,
 		syncIgnoredFlagPtr,
+		fromFlagPtr,
 		flagNoOpen,
 		flagNoSync,
 		flagNoSyncIgnored,
@@ -161,6 +175,11 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 		createBranch: flagAddBranch,
 		prIdentifier: flagAddPR,
 		selector:     selector,
+	}
+
+	// Use from from merged config if not specified in args
+	if from == "" {
+		from = mergedConfig.Add.From
 	}
 
 	// Determine branch
@@ -195,5 +214,5 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	syncMode := determineSyncMode(mergedConfig.Add.Sync, mergedConfig.Add.SyncIgnored, flagSyncAll, flagSyncIgnored)
 
 	// Create the worktree
-	return createWorktree(repoName, branch, flagAddBranch, editorCmd, syncMode)
+	return createWorktree(repoName, branch, flagAddBranch, from, editorCmd, syncMode)
 }

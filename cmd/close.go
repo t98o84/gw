@@ -71,6 +71,7 @@ func runClose(cmd *cobra.Command, args []string) error {
 		nil,
 		nil,
 		nil,
+		nil,
 		false,
 		false,
 		false,

@@ -9,8 +9,8 @@ func TestAddCmd(t *testing.T) {
 		t.Fatal("addCmd should not be nil")
 	}
 
-	if addCmd.Use != "add [flags] [branch]" {
-		t.Errorf("addCmd.Use = %q, want %q", addCmd.Use, "add [flags] [branch]")
+	if addCmd.Use != "add [flags] [branch] [from]" {
+		t.Errorf("addCmd.Use = %q, want %q", addCmd.Use, "add [flags] [branch] [from]")
 	}
 }
 

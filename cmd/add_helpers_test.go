@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/t98o84/gw/internal/fzf"
@@ -680,7 +681,7 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					if path == "/path/to/test-repo-feature-test" && branch == "feature/test" {
 						return nil
 					}
@@ -699,7 +700,7 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					if path == "/path/to/test-repo-feature-test" && branch == "feature/test" {
 						return nil
 					}
@@ -724,7 +725,7 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					return nil
 				}
 				mockOpenInEditor = func(editor, path string) error {
@@ -757,7 +758,7 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-feature-test", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					return errors.New("git worktree add failed")
 				}
 			},
@@ -774,7 +775,7 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/test-repo-new-feature", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					if createBranch && path == "/path/to/test-repo-new-feature" && branch == "new-feature" {
 						return nil
 					}
@@ -793,13 +794,33 @@ func TestCreateWorktree(t *testing.T) {
 				mockWorktreePath = func(repoName, branch string) (string, error) {
 					return "/path/to/my-repo-feature-fix-bug#123", nil
 				}
-				mockAdd = func(path string, branch string, createBranch bool) error {
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
 					return nil
 				}
 			},
 			wantErr: false,
-		},
-	}
+		}, {
+			name:         "create new branch from specific commit",
+			repoName:     "test-repo",
+			branch:       "feature/new",
+			createBranch: true,
+			openEditor:   "",
+			setupMock: func() {
+				mockWorktreePath = func(repoName, branch string) (string, error) {
+					return "/path/to/test-repo-feature-new", nil
+				}
+				mockAdd = func(path string, branch string, createBranch bool, from string) error {
+					if from != "origin/main" {
+						return fmt.Errorf("expected from to be origin/main, got %s", from)
+					}
+					if !createBranch {
+						return errors.New("expected createBranch to be true")
+					}
+					return nil
+				}
+			},
+			wantErr: false,
+		}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -807,7 +828,13 @@ func TestCreateWorktree(t *testing.T) {
 			defer resetMocks()
 			tt.setupMock()
 
-			err := createWorktree(tt.repoName, tt.branch, tt.createBranch, tt.openEditor, syncNone)
+			// Use origin/main for the new test case
+			from := ""
+			if tt.name == "create new branch from specific commit" {
+				from = "origin/main"
+			}
+
+			err := createWorktree(tt.repoName, tt.branch, tt.createBranch, from, tt.openEditor, syncNone)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("createWorktree() error = %v, wantErr %v", err, tt.wantErr)
 				return
