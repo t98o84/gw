@@ -34,15 +34,17 @@ add:
 
 # Close command configuration
 close:
-  # Automatically confirm worktree deletion without prompting
-  # When true, 'gw close' will pass -y flag to 'gw rm' automatically
+  # Force worktree removal even when the worktree is dirty or locked
+  # When true, 'gw close' passes -y (force) to 'gw rm' automatically
+  # Note: there is no interactive confirmation prompt; this is a force flag
   # Default: false
   force: true
 
 # Rm command configuration
 rm:
-  # Automatically confirm worktree deletion without prompting
-  # When true, skips confirmation prompt when removing worktrees
+  # Force removal of dirty/locked worktrees (and unmerged branches with -b)
+  # When true, passes --force to 'git worktree remove' (and 'git branch -D')
+  # Note: there is no interactive confirmation prompt; this is a force flag
   # Default: false
   force: true
 
@@ -68,5 +70,5 @@ editor: code
 # --no-* flags have the highest priority and will force the value to false:
 #   gw add --open --no-open feature/test  # Error: cannot use both flags together
 #   gw add --no-open feature/test          # Will NOT open even if config.add.open is true
-#   gw close --no-yes                      # Will NOT auto-confirm even if config.close.force is true
+#   gw close --no-yes                      # Will NOT force removal even if config.close.force is true
 #   gw rm --no-branch feature/test         # Will NOT delete branch even if config.rm.branch is true

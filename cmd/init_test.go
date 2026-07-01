@@ -82,6 +82,47 @@ func containsSubstring(s, substr string) bool {
 	return false
 }
 
+// TestBashZshInit_ClosePathAndFlagSeparation guards against regressions where the
+// bash/zsh wrapper captured the whole stderr (worktree path + rm flags) into a
+// single variable and passed "<path>\n<flags>" as one argument to `gw rm`
+// (issue #34), and ensures the flags line is forwarded to `gw rm` (issue #36).
+func TestBashZshInit_ClosePathAndFlagSeparation(t *testing.T) {
+	requiredElements := []string{
+		"sed -n '1p'",                          // extract worktree path (line 1)
+		"sed -n '2p'",                          // extract force flag (line 2)
+		"sed -n '3p'",                          // extract branch flag (line 3)
+		`command gw rm $yes_flag $branch_flag`, // forward the flags to gw rm
+		`--print-path "${@:2}"`,                // forward every user arg to gw close
+		`printf '%s\n' "$stderr_output" >&2`,   // surface close errors (issue #36 #1)
+	}
+
+	for _, elem := range requiredElements {
+		if !containsString(bashZshInit, elem) {
+			t.Errorf("bashZshInit should contain %q to separate the worktree path from the rm flags", elem)
+		}
+	}
+}
+
+// TestFishInit_ClosePathAndFlagSeparation guards against the fish wrapper joining
+// the stderr list with spaces (echo "$list" | sed) instead of reading the path and
+// flags as separate list elements (issue #34), and ensures the flags line is
+// forwarded to `gw rm` (issue #36).
+func TestFishInit_ClosePathAndFlagSeparation(t *testing.T) {
+	requiredElements := []string{
+		"$stderr_output[1]",             // worktree path
+		"$stderr_output[2..-1]",         // remaining lines = rm flags
+		"command gw rm $rm_flags",       // forward the flags to gw rm
+		"--print-path $argv[2..]",       // forward every user arg to gw close
+		"printf '%s\\n' $stderr_output", // surface close errors (issue #36 #1)
+	}
+
+	for _, elem := range requiredElements {
+		if !containsString(fishInit, elem) {
+			t.Errorf("fishInit should contain %q to read the worktree path and rm flags separately", elem)
+		}
+	}
+}
+
 func TestRunInit_UnsupportedShell(t *testing.T) {
 	err := runInit(initCmd, []string{"powershell"})
 	if err == nil {
