@@ -48,13 +48,11 @@ Hooks:
   Example gw.yaml:
     hooks:
       pre_remove:
-        - name: "Backup data"
-          command: |
+        - command: |
             echo "Backing up data from $GW_WORKTREE_PATH"
             tar -czf "$GW_REPO_ROOT/backup-$GW_BRANCH.tar.gz" .
       post_remove:
-        - name: "Clean up artifacts"
-          command: echo "Cleaned up worktree for $GW_BRANCH"
+        - command: echo "Cleaned up worktree for $GW_BRANCH"
 
 Examples:
   gw rm feature/hoge
