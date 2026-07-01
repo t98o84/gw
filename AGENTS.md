@@ -114,19 +114,23 @@ When editing the embedded scripts in `cmd/init.go`, keep these in mind:
 - **bash and zsh share one script** (`bashZshInit`). Use only syntax valid in
   both: POSIX `[ ... ]` tests plus `${@:2}` array slicing (valid in bash and
   zsh, not in sh).
-- **The wrapper receives paths over stdout/stderr, not arguments.**
+- **The wrapper receives paths and flags over stdout/stderr, not arguments.**
   `gw close --print-path` prints the main-worktree path on **stdout** (for the
-  wrapper to `cd`) and the current-worktree path on the **first stderr line**
-  (for `gw rm`); a **second stderr line** carries `-y` (or is empty). Keep
-  stdout and stderr separated when editing.
+  wrapper to `cd`) and three **stderr** lines for `gw rm`: line 1 = the
+  current-worktree path, line 2 = the force flag (`-y` or empty), line 3 = the
+  branch flag (`-b` or empty). Both wrappers forward the non-empty flags to
+  `gw rm`. Keep stdout and stderr separated, and keep the line order identical
+  in `close.go` and both scripts.
 - **fish uses a separate script** (`fishInit`) with different syntax:
-  `function ... end`, `$argv`, `set -l`, `; and`. It parses both stderr lines
-  with `sed -n '1p'`/`'2p'` and forwards `-y` to `gw rm`; the bash/zsh script
-  currently reads only the worktree path. A change on one side usually needs a
-  mirrored change on the other.
-- **Mind the bash vs zsh word-splitting difference** when changing how these
-  captured values are passed on: an unquoted expansion is word-split in bash
-  but not in zsh, so the shared script must not rely on that behaviour.
+  `function ... end`, `$argv`, `set -l`, `; and`, and a `for` loop that collects
+  the non-empty flag lines; bash/zsh read the same lines with
+  `sed -n '1p'`/`'2p'`/`'3p'`. The two scripts are kept symmetric, so a change on
+  one side—or to `close.go`'s stderr layout—needs a mirrored change on the other.
+- **The shared bash/zsh script deliberately relies on single-token flags.** It
+  passes them unquoted (`gw rm $yes_flag $branch_flag "$worktree"`) so an empty
+  flag expands to nothing and a set flag to exactly one word in both shells
+  (zsh does not word-split unquoted values; bash would). Keep each flag line a
+  single token—never space-joined—or the unquoted expansion breaks.
 
 To add a shell, add a `case` in `runInit` (`cmd/init.go`) and a matching
 integration-script constant.
