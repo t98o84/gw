@@ -659,6 +659,30 @@ func TestEnsureBranchExists(t *testing.T) {
 	}
 }
 
+// TestDetermineSyncMode verifies that the resolved sync settings map to the
+// expected bitmask, including the combined case where both are enabled.
+func TestDetermineSyncMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		sync    bool
+		ignored bool
+		want    syncMode
+	}{
+		{name: "neither", sync: false, ignored: false, want: syncNone},
+		{name: "changed files only", sync: true, ignored: false, want: syncAll},
+		{name: "ignored files only", sync: false, ignored: true, want: syncIgnored},
+		{name: "both combined", sync: true, ignored: true, want: syncAll | syncIgnored},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := determineSyncMode(tt.sync, tt.ignored); got != tt.want {
+				t.Errorf("determineSyncMode(%v, %v) = %d, want %d", tt.sync, tt.ignored, got, tt.want)
+			}
+		})
+	}
+}
+
 // TestCreateWorktree tests the createWorktree function
 func TestCreateWorktree(t *testing.T) {
 	tests := []struct {

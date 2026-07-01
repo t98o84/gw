@@ -67,10 +67,10 @@ Examples:
 
 func init() {
 	rmCmd.Flags().BoolVarP(&rmConfig.Force, "force", "f", false, "Force removal even if worktree is dirty")
-	rmCmd.Flags().BoolVarP(&rmConfig.Yes, "yes", "y", false, "Skip confirmation prompt (alias for --force)")
+	rmCmd.Flags().BoolVarP(&rmConfig.Yes, "yes", "y", false, "Force removal even if worktree is dirty (alias for --force)")
 	rmCmd.Flags().BoolVarP(&rmConfig.Branch, "branch", "b", false, "Also delete the associated git branch")
 	// Negation flags
-	rmCmd.Flags().BoolVar(&rmConfig.NoYes, "no-yes", false, "Force disable automatic confirmation (overrides config and --yes)")
+	rmCmd.Flags().BoolVar(&rmConfig.NoYes, "no-yes", false, "Disable force removal (overrides config and --yes)")
 	rmCmd.Flags().BoolVar(&rmConfig.NoForce, "no-force", false, "Alias for --no-yes")
 	rmCmd.Flags().BoolVar(&rmConfig.NoBranch, "no-branch", false, "Force disable branch deletion (overrides config and --branch)")
 	rootCmd.AddCommand(rmCmd)

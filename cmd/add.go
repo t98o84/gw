@@ -102,9 +102,6 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if flagAddBranch && flagAddPR != "" {
 		return fmt.Errorf("cannot use --branch and --pr together")
 	}
-	if flagSyncAll && flagSyncIgnored {
-		return fmt.Errorf("cannot use --sync and --sync-ignored together")
-	}
 
 	// Validate --no-* flag conflicts
 	if flagAddOpen && flagNoOpen {
@@ -126,11 +123,11 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	if cmd.Flags().Changed("editor") {
 		editorFlagPtr = &flagEditor
 	}
+	// --sync and --sync-ignored are independent; each overrides only its own
+	// config value so the two can be combined.
 	var syncFlagPtr *bool
-	if cmd.Flags().Changed("sync") || cmd.Flags().Changed("sync-ignored") {
-		// If either flag is set, determine sync behavior
-		syncEnabled := flagSyncAll
-		syncFlagPtr = &syncEnabled
+	if cmd.Flags().Changed("sync") {
+		syncFlagPtr = &flagSyncAll
 	}
 	var syncIgnoredFlagPtr *bool
 	if cmd.Flags().Changed("sync-ignored") {
@@ -213,7 +210,7 @@ func runAddWithSelector(cmd *cobra.Command, args []string, selector fzf.Selector
 	editorCmd := mergedConfig.GetEditor()
 
 	// Determine sync mode
-	syncMode := determineSyncMode(mergedConfig.Add.Sync, mergedConfig.Add.SyncIgnored, flagSyncAll, flagSyncIgnored)
+	syncMode := determineSyncMode(mergedConfig.Add.Sync, mergedConfig.Add.SyncIgnored)
 
 	// Create the worktree
 	return createWorktree(repoName, branch, flagAddBranch, from, editorCmd, syncMode)

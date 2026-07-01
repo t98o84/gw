@@ -273,25 +273,25 @@ gw add invalid-branch
 ```yaml
 add:
   open: true  # Automatically open in editor after worktree creation
-  sync: false  # Sync files from main worktree
-  sync_ignored: false  # Also sync gitignored files
+  sync: false  # Sync changed files from main worktree (excludes gitignored)
+  sync_ignored: false  # Also sync gitignored files (can be combined with sync)
 rm:
   branch: false  # Also delete branch when removing worktree
-  force: false  # Skip confirmation prompt
+  force: false  # Force removal of dirty/locked worktrees (and unmerged branches with -b)
 close:
-  force: false  # Skip confirmation prompt
+  force: false  # Force removal of dirty/locked worktrees (and unmerged branches with -b)
 editor: code  # Editor command to use
 ```
 
 #### Configuration Items
 
 - `add.open` (boolean): Whether to automatically open in editor after worktree creation (default: `false`)
-- `add.sync` (boolean): Whether to sync files from main worktree (default: `false`)
-- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`)
+- `add.sync` (boolean): Whether to sync changed files (modified, staged, untracked; excludes gitignored) from main worktree (default: `false`)
+- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`). Independent of `add.sync`; enabling both syncs changed files **and** gitignored files.
 - `add.from` (string): Base branch/commit used when creating a new branch with the `-b` flag (e.g., `origin/main`, `develop`, `HEAD~1`). The command-line argument takes precedence over this value (default: `""` - uses current branch)
 - `rm.branch` (boolean): Whether to also delete associated branch when removing worktree (default: `false`)
-- `rm.force` (boolean): Whether to skip confirmation prompt when deleting (default: `false`)
-- `close.force` (boolean): Whether to skip confirmation prompt when closing (default: `false`)
+- `rm.force` (boolean): Whether to force removal of dirty/locked worktrees and unmerged branches, passing `--force` to `git worktree remove` (and `git branch -D`). There is no interactive confirmation prompt (default: `false`)
+- `close.force` (boolean): Whether to force removal when closing; forwarded to `gw rm` as `-y` (default: `false`)
 - `editor` (string): Editor command to use (e.g., `code`, `vim`, `emacs`)
 
 **Note**: Flag precedence is as follows: `--no-*` flags > regular flags > configuration file
@@ -303,7 +303,7 @@ You can disable options enabled in the configuration file when executing command
 - `--no-open`: Don't open even with `add.open=true`
 - `--no-sync`: Don't sync even with `add.sync=true`
 - `--no-sync-ignored`: Don't sync gitignored files even with `add.sync_ignored=true`
-- `--no-yes` / `--no-force`: Show confirmation prompt even with `close.force=true` or `rm.force=true`
+- `--no-yes` / `--no-force`: Disable force removal for the command it is passed to. `gw rm --no-yes` overrides `rm.force=true`; `gw close --no-yes` overrides `close.force=true` (it is not forwarded to `gw rm`, so a separately configured `rm.force=true` still applies)
 - `--no-branch`: Don't delete branch even with `rm.branch=true`
 
 ```bash
@@ -418,7 +418,7 @@ gw sw
 # Close current worktree and return to main worktree
 gw close
 
-# Skip confirmation prompt and close
+# Force removal (dirty/locked worktree) and close
 gw close -y
 gw close --yes
 
@@ -433,7 +433,7 @@ gw close -f -b
 **Note**: The `gw close` command:
 - Cannot be executed from main worktree (`main` or `master`)
 - Requires shell integration (setup with `gw init` required)
-- Can skip confirmation prompt by setting `close.force=true` in config file
+- Can force removal of dirty/locked worktrees by setting `close.force=true` in config file
 
 ## Command List
 
@@ -456,14 +456,14 @@ gw close -f -b
 | `gw rm` | `gw r` | Select with fzf (no arguments, Tab for multiple) |
 | `gw rm -b <name>` | `gw r -b` | Remove worktree and branch |
 | `gw rm --no-branch <name>` | `gw r --no-branch` | Don't delete branch (ignore config) |
-| `gw rm --yes/-y` | `gw r -y` | Skip confirmation prompt |
-| `gw rm --no-yes/--no-force` | `gw r --no-yes` | Show confirmation prompt (ignore config) |
+| `gw rm --yes/-y` | `gw r -y` | Force removal of dirty/locked worktree |
+| `gw rm --no-yes/--no-force` | `gw r --no-yes` | Disable force removal (ignore config) |
 | `gw exec [name] <cmd...>` | `gw e` | Execute command in target worktree (fzf without arguments) |
 | `gw sw [name]` | `gw s` | Navigate to target worktree (fzf without arguments) |
 | `gw close [flags]` | `gw c` | Close current worktree and return to main |
 | `gw close -b` | `gw c -b` | Close and delete worktree and branch |
-| `gw close -y/--yes` | `gw c -y` | Close and skip confirmation prompt |
-| `gw close --no-yes/--no-force` | `gw c --no-yes` | Show confirmation prompt (ignore config) |
+| `gw close -y/--yes` | `gw c -y` | Close and force removal of dirty/locked worktree |
+| `gw close --no-yes/--no-force` | `gw c --no-yes` | Disable force removal (ignore config) |
 | `gw fd` | `gw f` | Search worktrees with fzf (output branch name) |
 | `gw fd -p` | `gw f -p` | Search worktrees with fzf (output full path) |
 | `gw init <shell>` | `gw i` | Output shell initialization script |

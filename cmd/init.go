@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -30,16 +32,20 @@ func init() {
 func runInit(cmd *cobra.Command, args []string) error {
 	shell := args[0]
 
+	var script string
 	switch shell {
 	case "bash", "zsh":
-		fmt.Print(bashZshInit)
+		script = bashZshInit
 	case "fish":
-		fmt.Print(fishInit)
+		script = fishInit
 	default:
 		return fmt.Errorf("unsupported shell: %s (supported: bash, zsh, fish)", shell)
 	}
 
-	return nil
+	// Use io.WriteString rather than fmt.Print so `go vet` doesn't flag the
+	// literal printf directives inside the shell script as format arguments.
+	_, err := io.WriteString(os.Stdout, script)
+	return err
 }
 
 const bashZshInit = `# gw shell integration
@@ -51,13 +57,25 @@ gw() {
       cd "$target"
     fi
   elif [ "$1" = "close" ] || [ "$1" = "c" ]; then
-    # Capture stderr (worktree path) and stdout (main path) separately
-    local worktree_to_remove target
-    worktree_to_remove="$(command gw close --print-path 2>&1 >/dev/null)"
-    target="$(command gw close --print-path 2>/dev/null)"
-    
-    if [ -n "$target" ] && [ -n "$worktree_to_remove" ]; then
-      cd "$target" && command gw rm "$worktree_to_remove"
+    # 'gw close' understands the force (-y/-f) and branch (-b) flags, so forward
+    # every argument. It echoes the flags to pass on to 'gw rm' on separate
+    # stderr lines (line 2 = force, line 3 = branch).
+    local stderr_output main_path worktree_to_remove yes_flag branch_flag
+    stderr_output="$(command gw close --print-path "${@:2}" 2>&1 >/dev/null)"
+    main_path="$(command gw close --print-path "${@:2}" 2>/dev/null)"
+
+    # Parse stderr: line 1 = worktree path, line 2 = force flag, line 3 = branch flag
+    worktree_to_remove="$(sed -n '1p' <<< "$stderr_output")"
+    yes_flag="$(sed -n '2p' <<< "$stderr_output")"
+    branch_flag="$(sed -n '3p' <<< "$stderr_output")"
+
+    if [ -n "$main_path" ] && [ -n "$worktree_to_remove" ]; then
+      # Each flag holds a single token (or empty), so unquoted expansion yields
+      # one word (or none) in both bash and zsh.
+      cd "$main_path" && command gw rm $yes_flag $branch_flag "$worktree_to_remove"
+    elif [ -n "$stderr_output" ]; then
+      # 'gw close' failed (e.g. unknown or conflicting flag); surface its message.
+      printf '%s\n' "$stderr_output" >&2
     fi
   else
     command gw "$@"
@@ -73,20 +91,28 @@ function gw
       cd "$target"
     end
   else if test "$argv[1]" = "close" -o "$argv[1]" = "c"
-    # Capture stderr (worktree path and -y flag) and stdout (main path)
-    set -l stderr_output (command gw close --print-path 2>&1 >/dev/null)
-    set -l main_path (command gw close --print-path 2>/dev/null)
-    
-    # Parse stderr output: line 1 = worktree path, line 2 = -y flag
-    set -l worktree_to_remove (echo "$stderr_output" | sed -n '1p')
-    set -l yes_flag (echo "$stderr_output" | sed -n '2p')
-    
-    if test -n "$main_path" -a -n "$worktree_to_remove"
-      if test "$yes_flag" = "-y"
-        cd "$main_path"; and command gw rm -y "$worktree_to_remove"
-      else
-        cd "$main_path"; and command gw rm "$worktree_to_remove"
+    # 'gw close' understands the force (-y/-f) and branch (-b) flags, so forward
+    # every argument. It echoes the flags to pass on to 'gw rm' on separate
+    # stderr lines (line 2 = force, line 3 = branch).
+    # command substitution splits on newlines: [1] = worktree path, and the
+    # remaining elements are the flags for 'gw rm'.
+    set -l stderr_output (command gw close --print-path $argv[2..] 2>&1 >/dev/null)
+    set -l main_path (command gw close --print-path $argv[2..] 2>/dev/null)
+
+    set -l worktree_to_remove $stderr_output[1]
+    # Collect the non-empty flag lines (order preserved: force then branch).
+    set -l rm_flags
+    for f in $stderr_output[2..-1]
+      if test -n "$f"
+        set -a rm_flags $f
       end
+    end
+
+    if test -n "$main_path" -a -n "$worktree_to_remove"
+      cd "$main_path"; and command gw rm $rm_flags "$worktree_to_remove"
+    else if test -n "$stderr_output"
+      # 'gw close' failed (e.g. unknown or conflicting flag); surface its message.
+      printf '%s\n' $stderr_output >&2
     end
   else
     command gw $argv

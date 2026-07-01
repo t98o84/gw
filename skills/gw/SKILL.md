@@ -77,11 +77,12 @@ Flags:
 - `-e, --editor <cmd>` — editor command (e.g. `code`, `vim`). Auto-open also requires
   `add.open=true` (or `--open`).
 - `-s, --sync` — copy all changed files (modified/staged/untracked) from the main worktree.
-- `-i, --sync-ignored` — copy gitignored files from the main worktree.
+- `-i, --sync-ignored` — copy gitignored files from the main worktree. Independent of
+  `-s`; combine `-s -i` to copy both changed and gitignored files.
 - `--no-open`, `--no-sync`, `--no-sync-ignored` — force-disable the matching option even
   if enabled in config (see "Config precedence").
 
-Mutually exclusive (error if combined): `-b`+`-p`, `-s`+`-i`, and each `--x`+`--no-x` pair.
+Mutually exclusive (error if combined): `-b`+`-p`, and each `--x`+`--no-x` pair.
 
 Behavior notes:
 
