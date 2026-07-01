@@ -126,6 +126,37 @@ func TestExecuteHooks(t *testing.T) {
 			},
 		},
 		{
+			name: "user env overrides gw environment variables",
+			setupFunc: func() (string, *ProjectConfig, string, string) {
+				dir := t.TempDir()
+				cfg := &ProjectConfig{
+					Hooks: HooksConfig{
+						PostAdd: []Hook{
+							{
+								Command: "echo \"$GW_BRANCH\" > override_test.txt",
+								Env: map[string]string{
+									"GW_BRANCH": "OVERRIDDEN",
+								},
+							},
+						},
+					},
+				}
+				return dir, cfg, "feature/test", dir
+			},
+			expectError: false,
+			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
+				content, err := os.ReadFile(filepath.Join(repoRoot, "override_test.txt"))
+				if err != nil {
+					t.Errorf("failed to read command output: %v", err)
+					return
+				}
+				output := strings.TrimSpace(string(content))
+				if output != "OVERRIDDEN" {
+					t.Errorf("expected user env to override GW_BRANCH, got: %s", output)
+				}
+			},
+		},
+		{
 			name: "multiple hooks",
 			setupFunc: func() (string, *ProjectConfig, string, string) {
 				dir := t.TempDir()
