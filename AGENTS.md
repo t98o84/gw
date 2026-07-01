@@ -53,10 +53,13 @@ gw/
 │   ├── rm.go            # gw rm - Remove worktree (multiple selection support)
 │   ├── ls.go            # gw ls - List worktrees
 │   ├── sw.go            # gw sw - Switch worktree
+│   ├── close.go         # gw close - Close current worktree and switch to main
 │   ├── exec.go          # gw exec - Execute command in worktree
 │   ├── fd.go            # gw fd - Search worktree with fzf
 │   ├── init.go          # gw init - Output shell integration script
-│   └── fzf.go           # fzf helper functions
+│   ├── fzf.go           # fzf helper functions
+│   ├── add_helpers.go   # gw add helper functions
+│   └── config.go        # Command flag configuration
 ├── internal/
 │   ├── git/             # Git operations
 │   │   ├── worktree.go  # git worktree operations
