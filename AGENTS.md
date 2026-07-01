@@ -135,7 +135,7 @@ integration-script constant.
 
 ### Language
 - Code comments: English
-- Commit messages: English
+- Commit messages: [Conventional Commits](https://www.conventionalcommits.org/). The type prefix (`feat:`/`fix:`/`docs:`, ...) must be English—git-cliff parses it for the CHANGELOG (see `.cliff.toml` and `.github/RELEASE_PROCESS.md` for the type list). The description and body may be Japanese or English.
 - Documentation (README, etc.): English
 
 ### Style
