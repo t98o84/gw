@@ -556,6 +556,83 @@ func TestConfig_MergeWithFlags_From(t *testing.T) {
 	}
 }
 
+func TestConfig_MergeWithFlags_Sync(t *testing.T) {
+	// sync and sync_ignored are independent: a flag for one must not clobber
+	// the config value of the other. This guards the regression where passing
+	// --sync-ignored alone used to force Add.Sync back to false.
+	tests := []struct {
+		name              string
+		config            *Config
+		syncFlag          *bool
+		syncIgnoredFlag   *bool
+		noSyncFlag        bool
+		noSyncIgnoredFlag bool
+		wantSync          bool
+		wantSyncIgnored   bool
+	}{
+		{
+			name:            "sync-ignored flag alone keeps config sync",
+			config:          &Config{Add: AddConfig{Sync: true, SyncIgnored: false}},
+			syncFlag:        nil, // --sync not passed
+			syncIgnoredFlag: boolPtr(true),
+			wantSync:        true, // must NOT be clobbered to false
+			wantSyncIgnored: true,
+		},
+		{
+			name:            "sync flag alone keeps config sync_ignored",
+			config:          &Config{Add: AddConfig{Sync: false, SyncIgnored: true}},
+			syncFlag:        boolPtr(true),
+			syncIgnoredFlag: nil, // --sync-ignored not passed
+			wantSync:        true,
+			wantSyncIgnored: true,
+		},
+		{
+			name:            "both flags enable both",
+			config:          &Config{Add: AddConfig{Sync: false, SyncIgnored: false}},
+			syncFlag:        boolPtr(true),
+			syncIgnoredFlag: boolPtr(true),
+			wantSync:        true,
+			wantSyncIgnored: true,
+		},
+		{
+			name:              "no-sync-ignored disables only sync_ignored",
+			config:            &Config{Add: AddConfig{Sync: true, SyncIgnored: true}},
+			syncFlag:          nil,
+			syncIgnoredFlag:   nil,
+			noSyncIgnoredFlag: true,
+			wantSync:          true,
+			wantSyncIgnored:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			merged := tt.config.MergeWithFlags(
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				tt.syncFlag,
+				tt.syncIgnoredFlag,
+				nil,
+				false,
+				tt.noSyncFlag,
+				tt.noSyncIgnoredFlag,
+				false,
+				false,
+				false,
+			)
+			if merged.Add.Sync != tt.wantSync {
+				t.Errorf("MergeWithFlags() Add.Sync = %v, want %v", merged.Add.Sync, tt.wantSync)
+			}
+			if merged.Add.SyncIgnored != tt.wantSyncIgnored {
+				t.Errorf("MergeWithFlags() Add.SyncIgnored = %v, want %v", merged.Add.SyncIgnored, tt.wantSyncIgnored)
+			}
+		})
+	}
+}
+
 func TestConfig_GetEditor(t *testing.T) {
 	tests := []struct {
 		name   string
