@@ -111,7 +111,9 @@ gw/
 │   ├── fd.go            # gw fd command
 │   ├── init.go          # gw init command
 │   ├── close.go         # gw close command
-│   └── fzf.go           # fzf helper functions
+│   ├── fzf.go           # fzf helper functions
+│   ├── add_helpers.go   # gw add helper functions
+│   └── config.go        # Command flag configuration
 ├── internal/
 │   ├── git/             # Git operations
 │   ├── github/          # GitHub API
