@@ -25,6 +25,15 @@ jobs:
       - name: Run tests
         run: go test -race -coverprofile=coverage.txt ./...
 
+      # カバレッジは閾値ゲートで失敗させる前にアップロードしておく。
+      # こうすることで閾値割れで CI が落ちた実行でも codecov に履歴が残り、
+      # カバレッジの推移を追える。
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.txt
+        continue-on-error: true
+
       # カバレッジ必須化のゲート。
       # 総ステートメントカバレッジが COVERAGE_THRESHOLD 未満なら CI を失敗させる。
       # この test ジョブは main のブランチ保護で必須チェックに設定されているため、
@@ -43,12 +52,6 @@ jobs:
             echo "::error::Total coverage ${total}% is below the required threshold of ${COVERAGE_THRESHOLD}%"
             exit 1
           fi
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.txt
-        continue-on-error: true
 
   lint:
     runs-on: ubuntu-latest
