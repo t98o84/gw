@@ -17,21 +17,28 @@ import (
 // (the worktree path and the -y flag must reach `gw rm` as separate arguments).
 
 // stubGw is a bash script (run via its shebang regardless of the calling shell)
-// that emulates the two gw sub-commands the wrapper invokes.
+// that emulates the two gw sub-commands the wrapper invokes. It mirrors the real
+// 'gw close --print-path' protocol: stdout = main path, stderr line 1 = worktree
+// path, line 2 = force flag (-y), line 3 = branch flag (-b).
 const stubGw = `#!/usr/bin/env bash
 case "$1" in
   close)
     echo "$GW_MAIN_PATH"
     echo "$GW_WT_PATH" >&2
     force=""
+    branch=""
     for a in "$@"; do
-      case "$a" in -y|--yes|--force) force="-y" ;; esac
+      case "$a" in
+        -y|-f|--yes|--force) force="-y" ;;
+        -b|--branch) branch="-b" ;;
+      esac
     done
     if [ "$GW_STUB_FORCE" = "1" ] && [ -z "$force" ]; then force="-y"; fi
     for a in "$@"; do
       case "$a" in --no-yes|--no-force) force="" ;; esac
     done
     echo "$force" >&2
+    echo "$branch" >&2
     ;;
   rm)
     shift
@@ -140,9 +147,10 @@ func TestCloseWrapperBehavior_PosixShells(t *testing.T) {
 		{"cli -y is forwarded", false, []string{"close", "-y"}, []string{"-y", "WT"}},
 		// No force: gw rm is called without -y.
 		{"no force omits -y", false, []string{"close"}, []string{"WT"}},
-		// Non-close flags (e.g. -b) are dropped, so gw close does not error and
-		// the close still happens.
-		{"unknown flag -b is ignored", false, []string{"close", "-b"}, []string{"WT"}},
+		// #36: -b is forwarded to gw rm so the branch is also deleted.
+		{"cli -b forwards branch deletion", false, []string{"close", "-b"}, []string{"-b", "WT"}},
+		// #36: -f -b forwards both force and branch (force-delete unmerged branch).
+		{"force and branch forwarded together", false, []string{"close", "-f", "-b"}, []string{"-y", "-b", "WT"}},
 	}
 
 	for _, shell := range []string{"bash", "zsh"} {
@@ -173,7 +181,8 @@ func TestCloseWrapperBehavior_Fish(t *testing.T) {
 		{"config force separates path and -y", true, []string{"close"}, []string{"-y", "WT"}},
 		{"cli -y is forwarded", false, []string{"close", "-y"}, []string{"-y", "WT"}},
 		{"no force omits -y", false, []string{"close"}, []string{"WT"}},
-		{"unknown flag -b is ignored", false, []string{"close", "-b"}, []string{"WT"}},
+		{"cli -b forwards branch deletion", false, []string{"close", "-b"}, []string{"-b", "WT"}},
+		{"force and branch forwarded together", false, []string{"close", "-f", "-b"}, []string{"-y", "-b", "WT"}},
 	}
 	for _, tc := range cases {
 		tc := tc
