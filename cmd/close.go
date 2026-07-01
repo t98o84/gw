@@ -16,6 +16,7 @@ var closeConfig = struct {
 	PrintPath bool
 	Yes       bool
 	Force     bool
+	Branch    bool
 	NoYes     bool
 	NoForce   bool
 }{}
@@ -33,7 +34,9 @@ This command must be run from within a non-main worktree. It will:
 Note: This command requires shell integration. Run 'gw init <shell>' to set up.
 
 Examples:
-  gw close       # Close current worktree and switch to main`,
+  gw close          # Close current worktree and switch to main
+  gw close -b       # Also delete the associated branch
+  gw close -f -b    # Force close and delete an unmerged branch`,
 	Args: cobra.NoArgs,
 	RunE: runClose,
 }
@@ -41,7 +44,8 @@ Examples:
 func init() {
 	closeCmd.Flags().BoolVar(&closeConfig.PrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
 	closeCmd.Flags().BoolVarP(&closeConfig.Yes, "yes", "y", false, "Force worktree removal even if dirty (forwarded to gw rm by the shell wrapper)")
-	closeCmd.Flags().BoolVar(&closeConfig.Force, "force", false, "Alias for --yes")
+	closeCmd.Flags().BoolVarP(&closeConfig.Force, "force", "f", false, "Alias for --yes")
+	closeCmd.Flags().BoolVarP(&closeConfig.Branch, "branch", "b", false, "Also delete the associated git branch (forwarded to gw rm by the shell wrapper)")
 	closeCmd.Flags().BoolVar(&closeConfig.NoYes, "no-yes", false, "Disable force removal (overrides config and --yes)")
 	closeCmd.Flags().BoolVar(&closeConfig.NoForce, "no-force", false, "Alias for --no-yes")
 	rootCmd.AddCommand(closeCmd)
@@ -109,24 +113,47 @@ func runClose(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get main worktree path: %w", err)
 	}
 
+	// Determine the flags to forward to 'gw rm' via the shell wrapper.
+	// Force (-y) forces removal of a dirty worktree and deletion of an
+	// unmerged branch; branch (-b) also deletes the associated git branch.
+	yesFlag := ""
+	if mergedConfig.Close.Force {
+		yesFlag = "-y"
+	}
+	branchFlag := ""
+	if closeConfig.Branch {
+		branchFlag = "-b"
+	}
+
 	if closeConfig.PrintPath {
 		// Print the main worktree path for shell wrapper to use (stdout)
 		fmt.Println(mainPath)
 		// Print the current worktree path on stderr for the shell wrapper to remove
 		fmt.Fprintf(os.Stderr, "%s\n", currentWT.Path)
-		// Print -y flag status on stderr (second line)
-		if mergedConfig.Close.Force {
-			fmt.Fprintf(os.Stderr, "-y\n")
-		} else {
-			fmt.Fprintf(os.Stderr, "\n")
-		}
+		// Print the flags to forward to 'gw rm' on their own stderr lines
+		// (line 2 = force, line 3 = branch). Keeping each flag on a separate
+		// line lets the wrapper forward them without word-splitting a joined
+		// string, which zsh does not do by default.
+		fmt.Fprintf(os.Stderr, "%s\n", yesFlag)
+		fmt.Fprintf(os.Stderr, "%s\n", branchFlag)
 		return nil
 	}
 
 	// Without shell integration, we can't actually change directory
 	// Print instructions
+	var rmFlags []string
+	if yesFlag != "" {
+		rmFlags = append(rmFlags, yesFlag)
+	}
+	if branchFlag != "" {
+		rmFlags = append(rmFlags, branchFlag)
+	}
+	rmInvocation := "gw rm"
+	if len(rmFlags) > 0 {
+		rmInvocation += " " + strings.Join(rmFlags, " ")
+	}
 	fmt.Fprintf(os.Stderr, "To close this worktree and switch to main, run:\n")
-	fmt.Fprintf(os.Stderr, "  cd %s && gw rm %s\n\n", mainPath, currentWT.Path)
+	fmt.Fprintf(os.Stderr, "  cd %s && %s %s\n\n", mainPath, rmInvocation, currentWT.Path)
 	fmt.Fprintf(os.Stderr, "For automatic directory switching and worktree removal, set up shell integration:\n")
 	fmt.Fprintf(os.Stderr, "  eval \"$(gw init bash)\"   # for bash\n")
 	fmt.Fprintf(os.Stderr, "  eval \"$(gw init zsh)\"    # for zsh\n")

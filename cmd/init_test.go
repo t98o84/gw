@@ -82,44 +82,43 @@ func containsSubstring(s, substr string) bool {
 	return false
 }
 
-// TestBashZshInit_ClosePathAndYesSeparation guards against regressions where the
-// bash/zsh wrapper captured the whole stderr (worktree path + "-y") into a single
-// variable and passed "<path>\n-y" as one argument to `gw rm` (issue #34).
-func TestBashZshInit_ClosePathAndYesSeparation(t *testing.T) {
+// TestBashZshInit_ClosePathAndFlagSeparation guards against regressions where the
+// bash/zsh wrapper captured the whole stderr (worktree path + rm flags) into a
+// single variable and passed "<path>\n<flags>" as one argument to `gw rm`
+// (issue #34), and ensures the flags line is forwarded to `gw rm` (issue #36).
+func TestBashZshInit_ClosePathAndFlagSeparation(t *testing.T) {
 	requiredElements := []string{
-		"sed -n '1p'",             // extract worktree path (line 1)
-		"sed -n '2p'",             // extract -y flag (line 2)
-		"command gw rm -y",        // forward -y when close.force is enabled
-		`for arg in "${@:2}"`,     // inspect CLI args (e.g. `gw close -y`)
-		"-y|--yes|--force",        // whitelist the force flags close understands
-		"--no-yes|--no-force",     // ...and their negations
-		"--print-path $close_arg", // forward only whitelisted flags to close
+		"sed -n '1p'",                          // extract worktree path (line 1)
+		"sed -n '2p'",                          // extract force flag (line 2)
+		"sed -n '3p'",                          // extract branch flag (line 3)
+		`command gw rm $yes_flag $branch_flag`, // forward the flags to gw rm
+		`--print-path "${@:2}"`,                // forward every user arg to gw close
+		`printf '%s\n' "$stderr_output" >&2`,   // surface close errors (issue #36 #1)
 	}
 
 	for _, elem := range requiredElements {
 		if !containsString(bashZshInit, elem) {
-			t.Errorf("bashZshInit should contain %q to separate the worktree path from the -y flag", elem)
+			t.Errorf("bashZshInit should contain %q to separate the worktree path from the rm flags", elem)
 		}
 	}
 }
 
-// TestFishInit_ClosePathAndYesSeparation guards against the fish wrapper joining
+// TestFishInit_ClosePathAndFlagSeparation guards against the fish wrapper joining
 // the stderr list with spaces (echo "$list" | sed) instead of reading the path and
-// -y flag as separate list elements (issue #34).
-func TestFishInit_ClosePathAndYesSeparation(t *testing.T) {
+// flags as separate list elements (issue #34), and ensures the flags line is
+// forwarded to `gw rm` (issue #36).
+func TestFishInit_ClosePathAndFlagSeparation(t *testing.T) {
 	requiredElements := []string{
-		"$stderr_output[1]",        // worktree path
-		"$stderr_output[2]",        // -y flag
-		"command gw rm -y",         // forward -y when close.force is enabled
-		"for a in $argv[2..]",      // inspect CLI args
-		"case -y --yes --force",    // whitelist the force flags close understands
-		"case --no-yes --no-force", // ...and their negations
-		"--print-path $close_arg",  // forward only whitelisted flags to close
+		"$stderr_output[1]",             // worktree path
+		"$stderr_output[2..-1]",         // remaining lines = rm flags
+		"command gw rm $rm_flags",       // forward the flags to gw rm
+		"--print-path $argv[2..]",       // forward every user arg to gw close
+		"printf '%s\\n' $stderr_output", // surface close errors (issue #36 #1)
 	}
 
 	for _, elem := range requiredElements {
 		if !containsString(fishInit, elem) {
-			t.Errorf("fishInit should contain %q to read the worktree path and -y flag separately", elem)
+			t.Errorf("fishInit should contain %q to read the worktree path and rm flags separately", elem)
 		}
 	}
 }
