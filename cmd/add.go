@@ -51,11 +51,9 @@ Hooks:
   Example gw.yaml:
     hooks:
       pre_add:
-        - name: "Validate branch name"
-          command: echo "Creating worktree for $GW_BRANCH"
+        - command: echo "Creating worktree for $GW_BRANCH"
       post_add:
-        - name: "Install dependencies"
-          command: npm install
+        - command: npm install
 
 Examples:
   gw add feature/hoge
