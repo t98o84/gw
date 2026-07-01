@@ -82,6 +82,48 @@ func containsSubstring(s, substr string) bool {
 	return false
 }
 
+// TestBashZshInit_ClosePathAndYesSeparation guards against regressions where the
+// bash/zsh wrapper captured the whole stderr (worktree path + "-y") into a single
+// variable and passed "<path>\n-y" as one argument to `gw rm` (issue #34).
+func TestBashZshInit_ClosePathAndYesSeparation(t *testing.T) {
+	requiredElements := []string{
+		"sed -n '1p'",             // extract worktree path (line 1)
+		"sed -n '2p'",             // extract -y flag (line 2)
+		"command gw rm -y",        // forward -y when close.force is enabled
+		`for arg in "${@:2}"`,     // inspect CLI args (e.g. `gw close -y`)
+		"-y|--yes|--force",        // whitelist the force flags close understands
+		"--no-yes|--no-force",     // ...and their negations
+		"--print-path $close_arg", // forward only whitelisted flags to close
+	}
+
+	for _, elem := range requiredElements {
+		if !containsString(bashZshInit, elem) {
+			t.Errorf("bashZshInit should contain %q to separate the worktree path from the -y flag", elem)
+		}
+	}
+}
+
+// TestFishInit_ClosePathAndYesSeparation guards against the fish wrapper joining
+// the stderr list with spaces (echo "$list" | sed) instead of reading the path and
+// -y flag as separate list elements (issue #34).
+func TestFishInit_ClosePathAndYesSeparation(t *testing.T) {
+	requiredElements := []string{
+		"$stderr_output[1]",        // worktree path
+		"$stderr_output[2]",        // -y flag
+		"command gw rm -y",         // forward -y when close.force is enabled
+		"for a in $argv[2..]",      // inspect CLI args
+		"case -y --yes --force",    // whitelist the force flags close understands
+		"case --no-yes --no-force", // ...and their negations
+		"--print-path $close_arg",  // forward only whitelisted flags to close
+	}
+
+	for _, elem := range requiredElements {
+		if !containsString(fishInit, elem) {
+			t.Errorf("fishInit should contain %q to read the worktree path and -y flag separately", elem)
+		}
+	}
+}
+
 func TestRunInit_UnsupportedShell(t *testing.T) {
 	err := runInit(initCmd, []string{"powershell"})
 	if err == nil {
