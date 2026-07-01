@@ -13,18 +13,21 @@ This document provides guidelines for AI agents (GitHub Copilot, Claude, etc.) w
 docker compose run --rm dev sh
 
 # Or execute commands directly
-docker compose run --rm dev go test ./...
+docker compose run --rm dev go test -race ./...
 docker compose run --rm dev go build -o gw .
 ```
 
 ### Command Examples
 
 ```bash
-# Run tests
-docker compose run --rm dev go test ./...
+# Run tests (race detector, matches CI)
+docker compose run --rm dev go test -race ./...
 
 # Detailed test output
-docker compose run --rm dev go test ./... -v
+docker compose run --rm dev go test -race ./... -v
+
+# Vet
+docker compose run --rm dev go vet ./...
 
 # Build (for Linux)
 docker compose run --rm dev go build -o gw .
@@ -64,8 +67,21 @@ gw/
 │   ├── git/             # Git operations
 │   │   ├── worktree.go  # git worktree operations
 │   │   └── naming.go    # Naming convention conversion
-│   └── github/          # GitHub API
-│       └── pr.go        # Get branch from PR
+│   ├── github/          # GitHub API
+│   │   └── pr.go        # Get branch from PR
+│   ├── config/          # Configuration and hooks
+│   │   ├── config.go    # Config types and flag merge
+│   │   ├── loader.go    # Load config from files (Load)
+│   │   ├── hooks.go     # Hook types and execution (post_add, pre_remove, ...)
+│   │   ├── project.go   # Project config from gw.yaml
+│   │   └── path.go      # Config file path resolution
+│   ├── shell/           # External command execution
+│   │   ├── executor.go  # Executor interface + real implementation
+│   │   └── mock.go      # Executor mock for tests
+│   ├── errors/          # Typed domain errors
+│   │   └── errors.go    # Error types (BranchNotFoundError, ...)
+│   └── fzf/             # fzf integration
+│       └── selector.go  # Selector interface for interactive choice
 ├── go.mod
 ├── go.sum
 ├── Dockerfile
@@ -135,11 +151,14 @@ integration-script constant.
 ## Dependencies
 
 - [github.com/spf13/cobra](https://github.com/spf13/cobra) - CLI framework
-- [github.com/google/go-github](https://github.com/google/go-github) - GitHub API client
+- [github.com/google/go-github/v66](https://github.com/google/go-github) - GitHub API client
 - [golang.org/x/oauth2](https://pkg.go.dev/golang.org/x/oauth2) - OAuth2 authentication
+- [gopkg.in/yaml.v3](https://gopkg.in/yaml.v3) - YAML parsing (config files)
 
 ## Notes
 
 1. **fzf-related tests**: Do not directly call fzf in tests as it requires interactive input
 2. **git commands**: Execute through the `internal/git` package. Tests may run outside a git repository
 3. **GitHub API**: Use `GITHUB_TOKEN`, `GH_TOKEN` environment variables, or `gh auth token` for authentication
+4. **Linting**: CI runs `golangci-lint` (default config) and `go vet` on every PR. `golangci-lint` is **not** bundled in the dev image (it only has `git` and `fzf`); install it locally (see the golangci-lint docs) and run `golangci-lint run` before pushing to avoid CI lint failures.
+5. **Configuration**: User/project config and hooks live in `internal/config`. See `examples/config.yaml` and `examples/gw.yaml` for the format; hooks such as `post_add`/`pre_remove` are documented in the README.
