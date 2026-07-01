@@ -72,6 +72,49 @@ gw/
 └── compose.yaml
 ```
 
+## Shell Integration
+
+`gw sw` and `gw close` must change the **parent shell's** working directory,
+which a child process cannot do on its own. `gw init <shell>` therefore emits a
+`gw()` wrapper function that runs the real binary, reads the path it prints, and
+`cd`s the shell itself (see `cmd/init.go`).
+
+### Supported shells
+
+| Shell | `gw init` arg | Setup |
+|-------|---------------|-------|
+| bash  | `bash` | `eval "$(gw init bash)"` in `~/.bashrc` |
+| zsh   | `zsh`  | `eval "$(gw init zsh)"` in `~/.zshrc` |
+| fish  | `fish` | `gw init fish \| source` in `~/.config/fish/config.fish` |
+
+POSIX `sh`/dash is **not** supported: the shared wrapper uses `${@:2}` array
+slicing, a bash/zsh extension that `sh` cannot run. `runInit` returns
+`unsupported shell` for anything other than the three above.
+
+### Per-shell syntax caveats
+
+When editing the embedded scripts in `cmd/init.go`, keep these in mind:
+
+- **bash and zsh share one script** (`bashZshInit`). Use only syntax valid in
+  both: POSIX `[ ... ]` tests plus `${@:2}` array slicing (valid in bash and
+  zsh, not in sh).
+- **The wrapper receives paths over stdout/stderr, not arguments.**
+  `gw close --print-path` prints the main-worktree path on **stdout** (for the
+  wrapper to `cd`) and the current-worktree path on the **first stderr line**
+  (for `gw rm`); a **second stderr line** carries `-y` (or is empty). Keep
+  stdout and stderr separated when editing.
+- **fish uses a separate script** (`fishInit`) with different syntax:
+  `function ... end`, `$argv`, `set -l`, `; and`. It parses both stderr lines
+  with `sed -n '1p'`/`'2p'` and forwards `-y` to `gw rm`; the bash/zsh script
+  currently reads only the worktree path. A change on one side usually needs a
+  mirrored change on the other.
+- **Mind the bash vs zsh word-splitting difference** when changing how these
+  captured values are passed on: an unquoted expansion is word-split in bash
+  but not in zsh, so the shared script must not rely on that behaviour.
+
+To add a shell, add a `case` in `runInit` (`cmd/init.go`) and a matching
+integration-script constant.
+
 ## Coding Conventions
 
 ### Language
