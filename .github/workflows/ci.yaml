@@ -25,6 +25,25 @@ jobs:
       - name: Run tests
         run: go test -race -coverprofile=coverage.txt ./...
 
+      # カバレッジ必須化のゲート。
+      # 総ステートメントカバレッジが COVERAGE_THRESHOLD 未満なら CI を失敗させる。
+      # この test ジョブは main のブランチ保護で必須チェックに設定されているため、
+      # 下回った PR はマージできない。
+      #
+      # 現状はおよそ 50% を下限としてラチェット（後退防止）している。
+      # 今後テストを追加しながら COVERAGE_THRESHOLD を段階的に引き上げ、
+      # 最終的に 100% を目指す。カバレッジが上がったらこの値も忘れず上げること。
+      - name: Enforce coverage threshold
+        env:
+          COVERAGE_THRESHOLD: '50'
+        run: |
+          total=$(go tool cover -func=coverage.txt | awk '/^total:/ {print $3}' | tr -d '%')
+          echo "Total coverage: ${total}% (threshold: ${COVERAGE_THRESHOLD}%)"
+          if awk -v cur="$total" -v th="$COVERAGE_THRESHOLD" 'BEGIN { exit (cur+0 < th+0) ? 0 : 1 }'; then
+            echo "::error::Total coverage ${total}% is below the required threshold of ${COVERAGE_THRESHOLD}%"
+            exit 1
+          fi
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
