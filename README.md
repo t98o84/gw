@@ -292,7 +292,7 @@ You can disable options enabled in the configuration file when executing command
 - `--no-open`: Don't open even with `add.open=true`
 - `--no-sync`: Don't sync even with `add.sync=true`
 - `--no-sync-ignored`: Don't sync gitignored files even with `add.sync_ignored=true`
-- `--no-yes` / `--no-force`: Disable force removal even with `close.force=true` or `rm.force=true`
+- `--no-yes` / `--no-force`: Disable force removal for the command it is passed to. `gw rm --no-yes` overrides `rm.force=true`; `gw close --no-yes` overrides `close.force=true` (it is not forwarded to `gw rm`, so a separately configured `rm.force=true` still applies)
 - `--no-branch`: Don't delete branch even with `rm.branch=true`
 
 ```bash
