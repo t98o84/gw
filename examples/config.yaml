@@ -9,14 +9,17 @@ add:
   # Default: false
   open: true
 
-  # Synchronize all changed files from main worktree when creating a new worktree
-  # When true, all files with differences (modified, staged, untracked) will be copied
+  # Synchronize changed files from main worktree when creating a new worktree
+  # When true, all files with differences (modified, staged, untracked) will be
+  # copied. Gitignored files are NOT included here (see sync_ignored below).
   # Use --sync/-s flag to explicitly enable this
   # Default: false
   sync: false
 
   # Synchronize gitignored files from main worktree when creating a new worktree
   # When true, gitignored files will be copied to the new worktree
+  # This is independent of `sync`: enabling both copies changed files AND
+  # gitignored files (the two sets do not overlap)
   # Use --sync-ignored/-i flag to explicitly enable this
   # Default: false
   sync_ignored: false

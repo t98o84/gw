@@ -273,8 +273,8 @@ gw add invalid-branch
 ```yaml
 add:
   open: true  # Automatically open in editor after worktree creation
-  sync: false  # Sync files from main worktree
-  sync_ignored: false  # Also sync gitignored files
+  sync: false  # Sync changed files from main worktree (excludes gitignored)
+  sync_ignored: false  # Also sync gitignored files (can be combined with sync)
 rm:
   branch: false  # Also delete branch when removing worktree
   force: false  # Skip confirmation prompt
@@ -286,8 +286,8 @@ editor: code  # Editor command to use
 #### Configuration Items
 
 - `add.open` (boolean): Whether to automatically open in editor after worktree creation (default: `false`)
-- `add.sync` (boolean): Whether to sync files from main worktree (default: `false`)
-- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`)
+- `add.sync` (boolean): Whether to sync changed files (modified, staged, untracked; excludes gitignored) from main worktree (default: `false`)
+- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`). Independent of `add.sync`; enabling both syncs changed files **and** gitignored files.
 - `add.from` (string): Base branch/commit used when creating a new branch with the `-b` flag (e.g., `origin/main`, `develop`, `HEAD~1`). The command-line argument takes precedence over this value (default: `""` - uses current branch)
 - `rm.branch` (boolean): Whether to also delete associated branch when removing worktree (default: `false`)
 - `rm.force` (boolean): Whether to skip confirmation prompt when deleting (default: `false`)
