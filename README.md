@@ -288,6 +288,7 @@ editor: code  # Editor command to use
 - `add.open` (boolean): Whether to automatically open in editor after worktree creation (default: `false`)
 - `add.sync` (boolean): Whether to sync files from main worktree (default: `false`)
 - `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`)
+- `add.from` (string): Base branch/commit used when creating a new branch with the `-b` flag (e.g., `origin/main`, `develop`, `HEAD~1`). The command-line argument takes precedence over this value (default: `""` - uses current branch)
 - `rm.branch` (boolean): Whether to also delete associated branch when removing worktree (default: `false`)
 - `rm.force` (boolean): Whether to skip confirmation prompt when deleting (default: `false`)
 - `close.force` (boolean): Whether to skip confirmation prompt when closing (default: `false`)
