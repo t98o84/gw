@@ -140,10 +140,11 @@ hooks:
   
   # Before worktree deletion
   pre_remove:
-    # Backup data
+    # Backup data (pre_remove runs inside the worktree that is about to be
+    # removed, so write the archive to the repo root to keep it)
     - command: |
         echo "Backing up data from $GW_WORKTREE_PATH"
-        tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
+        tar -czf "$GW_REPO_ROOT/backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" .
   
   # After worktree deletion
   post_remove:
@@ -192,6 +193,15 @@ hooks:
 ```
 
 You can also add custom environment variables in the `env` field (and even override gw's environment variables).
+
+#### Working Directory
+
+Each hook runs in a working directory that matches its point in the worktree lifecycle:
+
+- **post_add / pre_remove**: run inside the target worktree (`$GW_WORKTREE_PATH`), since it exists at that point. For example, `post_add: cp .env.example .env` copies the file into the new worktree.
+- **pre_add / post_remove**: run in the main repository root (`$GW_REPO_ROOT`), because the worktree does not exist yet (`pre_add`) or has already been removed (`post_remove`).
+
+Because absolute paths (`$GW_WORKTREE_PATH`, `$GW_REPO_ROOT`) are always available, you can operate on either location from any hook regardless of the working directory.
 
 #### Hook Execution Order and Error Handling
 
@@ -263,8 +273,8 @@ gw add invalid-branch
 ```yaml
 add:
   open: true  # Automatically open in editor after worktree creation
-  sync: false  # Sync files from main worktree
-  sync_ignored: false  # Also sync gitignored files
+  sync: false  # Sync changed files from main worktree (excludes gitignored)
+  sync_ignored: false  # Also sync gitignored files (can be combined with sync)
 rm:
   branch: false  # Also delete branch when removing worktree
   force: false  # Force removal of dirty/locked worktrees (and unmerged branches with -b)
@@ -276,8 +286,9 @@ editor: code  # Editor command to use
 #### Configuration Items
 
 - `add.open` (boolean): Whether to automatically open in editor after worktree creation (default: `false`)
-- `add.sync` (boolean): Whether to sync files from main worktree (default: `false`)
-- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`)
+- `add.sync` (boolean): Whether to sync changed files (modified, staged, untracked; excludes gitignored) from main worktree (default: `false`)
+- `add.sync_ignored` (boolean): Whether to also sync gitignored files (default: `false`). Independent of `add.sync`; enabling both syncs changed files **and** gitignored files.
+- `add.from` (string): Base branch/commit used when creating a new branch with the `-b` flag (e.g., `origin/main`, `develop`, `HEAD~1`). The command-line argument takes precedence over this value (default: `""` - uses current branch)
 - `rm.branch` (boolean): Whether to also delete associated branch when removing worktree (default: `false`)
 - `rm.force` (boolean): Whether to force removal of dirty/locked worktrees and unmerged branches, passing `--force` to `git worktree remove` (and `git branch -D`). There is no interactive confirmation prompt (default: `false`)
 - `close.force` (boolean): Whether to force removal when closing; forwarded to `gw rm` as `-y` (default: `false`)
@@ -456,6 +467,59 @@ gw close -f -b
 | `gw fd` | `gw f` | Search worktrees with fzf (output branch name) |
 | `gw fd -p` | `gw f -p` | Search worktrees with fzf (output full path) |
 | `gw init <shell>` | `gw i` | Output shell initialization script |
+
+## AI Agent Skill
+
+This repository ships an [Agent Skill](https://agentskills.io) at
+[`skills/gw/SKILL.md`](skills/gw/SKILL.md) that teaches AI coding agents how to drive
+`gw` correctly (commands, naming convention, hooks, config precedence, and known
+pitfalls) instead of calling `git worktree` directly.
+
+The skill is **tool-agnostic** — it follows the Agent Skills open standard, so it works
+across Claude Code, GitHub Copilot, Cursor, Codex, Gemini CLI, and other skills-compatible
+agents.
+
+### Install for Claude Code
+
+**Option A — plugin marketplace:**
+
+```shell
+/plugin marketplace add t98o84/gw
+/plugin install gw@gw
+```
+
+**Option B — copy the skill (minimal):**
+
+```bash
+# Personal (all projects)
+mkdir -p ~/.claude/skills && cp -r skills/gw ~/.claude/skills/gw
+
+# Or project-local (this repo only)
+mkdir -p .claude/skills && cp -r skills/gw .claude/skills/gw
+```
+
+### Install with the GitHub CLI (`gh skill`, multi-agent)
+
+The `gh skill` GitHub CLI extension discovers `skills/*/SKILL.md` and supports many agents
+via `--agent`:
+
+```bash
+gh skill search gw
+gh skill preview t98o84/gw gw
+gh skill install t98o84/gw gw --agent claude-code   # other agents: change --agent
+```
+
+> Note: `gh skill` is in preview and its interface may change.
+
+### npm (optional)
+
+Distributing this skill via npm is not required. If you want an npm-style flow, use a
+third-party universal loader that reads the skill straight from GitHub — no npm publish on
+`gw`'s side:
+
+```bash
+npx openskills install github:t98o84/gw
+```
 
 ## Required Tools
 

@@ -1,0 +1,5 @@
+{
+  "name": "gw",
+  "description": "Agent skill that teaches AI agents to drive the gw git-worktree CLI.",
+  "version": "0.1.0"
+}

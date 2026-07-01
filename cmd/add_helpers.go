@@ -14,13 +14,15 @@ import (
 	"github.com/t98o84/gw/internal/github"
 )
 
-// syncMode represents the synchronization mode for worktree creation
+// syncMode is a bitmask of the file categories to synchronize when creating a
+// worktree. syncAll and syncIgnored cover disjoint file sets, so they can be
+// combined to sync both changed and gitignored files at once.
 type syncMode int
 
 const (
-	syncNone syncMode = iota
-	syncAll
-	syncIgnored
+	syncNone    syncMode = 0
+	syncAll     syncMode = 1 << 0 // changed files: modified, staged, untracked (excludes ignored)
+	syncIgnored syncMode = 1 << 1 // gitignored files
 )
 
 // Mock functions for testing - nil in production
@@ -171,14 +173,17 @@ func syncFiles(wtPath string, mode syncMode) error {
 		return fmt.Errorf("failed to get main worktree path: %w", err)
 	}
 
-	switch mode {
-	case syncAll:
-		return syncAllDiffs(mainWtPath, wtPath)
-	case syncIgnored:
-		return syncIgnoredFiles(mainWtPath, wtPath)
-	default:
-		return nil
+	if mode&syncAll != 0 {
+		if err := syncAllDiffs(mainWtPath, wtPath); err != nil {
+			return err
+		}
 	}
+	if mode&syncIgnored != 0 {
+		if err := syncIgnoredFiles(mainWtPath, wtPath); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // getMainWorktreePath returns the path of the main worktree
@@ -291,21 +296,18 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-// determineSyncMode determines which sync mode to use
-func determineSyncMode(configSync, configSyncIgnored, flagSyncAll, flagSyncIgnored bool) syncMode {
-	if flagSyncAll {
-		return syncAll
+// determineSyncMode builds the sync bitmask from the resolved sync settings.
+// The two options are independent: enabling both syncs changed and gitignored
+// files together.
+func determineSyncMode(sync, ignored bool) syncMode {
+	mode := syncNone
+	if sync {
+		mode |= syncAll
 	}
-	if flagSyncIgnored {
-		return syncIgnored
+	if ignored {
+		mode |= syncIgnored
 	}
-	if configSync {
-		return syncAll
-	}
-	if configSyncIgnored {
-		return syncIgnored
-	}
-	return syncNone
+	return mode
 }
 
 // createWorktree creates a new worktree for the given branch

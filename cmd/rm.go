@@ -39,17 +39,20 @@ Hooks:
     - GW_WORKTREE_PATH: Path to the worktree
     - GW_BRANCH: Branch name
     - GW_REPO_ROOT: Repository root path
-  
+
+  Working directory:
+    - pre_remove runs inside the worktree (GW_WORKTREE_PATH); write any output
+      you want to keep to GW_REPO_ROOT, since the worktree is removed next
+    - post_remove runs in the repository root (worktree already removed)
+
   Example gw.yaml:
     hooks:
       pre_remove:
-        - name: "Backup data"
-          command: |
+        - command: |
             echo "Backing up data from $GW_WORKTREE_PATH"
-            tar -czf "backup-$GW_BRANCH.tar.gz" "$GW_WORKTREE_PATH"
+            tar -czf "$GW_REPO_ROOT/backup-$GW_BRANCH.tar.gz" .
       post_remove:
-        - name: "Clean up artifacts"
-          command: echo "Cleaned up worktree for $GW_BRANCH"
+        - command: echo "Cleaned up worktree for $GW_BRANCH"
 
 Examples:
   gw rm feature/hoge
