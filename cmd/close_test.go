@@ -63,6 +63,33 @@ func TestCloseCmd_ForceFlag(t *testing.T) {
 	}
 }
 
+func TestCloseCmd_ForceFlagShorthand(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("force")
+	if flag == nil {
+		t.Fatal("Expected 'force' flag to be defined")
+	}
+	if flag.Shorthand != "f" {
+		t.Errorf("Expected shorthand 'f', got '%s'", flag.Shorthand)
+	}
+}
+
+func TestCloseCmd_BranchFlag(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("branch")
+	if flag == nil {
+		t.Fatal("Expected 'branch' flag to be defined")
+	}
+}
+
+func TestCloseCmd_BranchFlagShorthand(t *testing.T) {
+	flag := closeCmd.Flags().Lookup("branch")
+	if flag == nil {
+		t.Fatal("Expected 'branch' flag to be defined")
+	}
+	if flag.Shorthand != "b" {
+		t.Errorf("Expected shorthand 'b', got '%s'", flag.Shorthand)
+	}
+}
+
 func TestCloseCmd_NoYesFlag(t *testing.T) {
 	flag := closeCmd.Flags().Lookup("no-yes")
 	if flag == nil {
