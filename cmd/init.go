@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -30,16 +32,20 @@ func init() {
 func runInit(cmd *cobra.Command, args []string) error {
 	shell := args[0]
 
+	var script string
 	switch shell {
 	case "bash", "zsh":
-		fmt.Print(bashZshInit)
+		script = bashZshInit
 	case "fish":
-		fmt.Print(fishInit)
+		script = fishInit
 	default:
 		return fmt.Errorf("unsupported shell: %s (supported: bash, zsh, fish)", shell)
 	}
 
-	return nil
+	// Use io.WriteString rather than fmt.Print so `go vet` doesn't flag the
+	// literal printf directives inside the shell script as format arguments.
+	_, err := io.WriteString(os.Stdout, script)
+	return err
 }
 
 const bashZshInit = `# gw shell integration
@@ -67,6 +73,9 @@ gw() {
       # Each flag holds a single token (or empty), so unquoted expansion yields
       # one word (or none) in both bash and zsh.
       cd "$main_path" && command gw rm $yes_flag $branch_flag "$worktree_to_remove"
+    elif [ -n "$stderr_output" ]; then
+      # 'gw close' failed (e.g. unknown or conflicting flag); surface its message.
+      printf '%s\n' "$stderr_output" >&2
     fi
   else
     command gw "$@"
@@ -101,6 +110,9 @@ function gw
 
     if test -n "$main_path" -a -n "$worktree_to_remove"
       cd "$main_path"; and command gw rm $rm_flags "$worktree_to_remove"
+    else if test -n "$stderr_output"
+      # 'gw close' failed (e.g. unknown or conflicting flag); surface its message.
+      printf '%s\n' $stderr_output >&2
     end
   else
     command gw $argv

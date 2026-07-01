@@ -93,6 +93,7 @@ func TestBashZshInit_ClosePathAndFlagSeparation(t *testing.T) {
 		"sed -n '3p'",                          // extract branch flag (line 3)
 		`command gw rm $yes_flag $branch_flag`, // forward the flags to gw rm
 		`--print-path "${@:2}"`,                // forward every user arg to gw close
+		`printf '%s\n' "$stderr_output" >&2`,   // surface close errors (issue #36 #1)
 	}
 
 	for _, elem := range requiredElements {
@@ -108,10 +109,11 @@ func TestBashZshInit_ClosePathAndFlagSeparation(t *testing.T) {
 // forwarded to `gw rm` (issue #36).
 func TestFishInit_ClosePathAndFlagSeparation(t *testing.T) {
 	requiredElements := []string{
-		"$stderr_output[1]",       // worktree path
-		"$stderr_output[2..-1]",   // remaining lines = rm flags
-		"command gw rm $rm_flags", // forward the flags to gw rm
-		"--print-path $argv[2..]", // forward every user arg to gw close
+		"$stderr_output[1]",             // worktree path
+		"$stderr_output[2..-1]",         // remaining lines = rm flags
+		"command gw rm $rm_flags",       // forward the flags to gw rm
+		"--print-path $argv[2..]",       // forward every user arg to gw close
+		"printf '%s\\n' $stderr_output", // surface close errors (issue #36 #1)
 	}
 
 	for _, elem := range requiredElements {
