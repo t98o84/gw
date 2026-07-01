@@ -55,9 +55,11 @@ hooks:
   # Hooks executed before worktree removal
   pre_remove:
     # Example 1: Backup important data
+    # pre_remove runs inside the worktree, which is about to be removed,
+    # so write the archive to the repo root ($GW_REPO_ROOT) to keep it.
     - command: |
         echo "Backing up data from $GW_WORKTREE_PATH"
-        tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
+        tar -czf "$GW_REPO_ROOT/backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" .
     
     # Example 2: Stop running services
     - command: |
@@ -94,7 +96,10 @@ hooks:
 #
 # Notes:
 # - Hooks are executed in the order they are defined
-# - Commands are executed in the worktree directory (or repo root for pre_add)
+# - Working directory of each hook:
+#     - post_add, pre_remove: the target worktree directory ($GW_WORKTREE_PATH)
+#     - pre_add (worktree not yet created), post_remove (worktree already
+#       removed): the main repository root ($GW_REPO_ROOT)
 # - If a pre_add or pre_remove hook fails, the operation is aborted
 # - If a post_add or post_remove hook fails, a warning is displayed but the operation continues
 # - Use multiline commands with | for complex scripts

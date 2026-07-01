@@ -140,10 +140,11 @@ hooks:
   
   # Before worktree deletion
   pre_remove:
-    # Backup data
+    # Backup data (pre_remove runs inside the worktree that is about to be
+    # removed, so write the archive to the repo root to keep it)
     - command: |
         echo "Backing up data from $GW_WORKTREE_PATH"
-        tar -czf "backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" -C "$GW_WORKTREE_PATH" .
+        tar -czf "$GW_REPO_ROOT/backup-$GW_BRANCH-$(date +%Y%m%d).tar.gz" .
   
   # After worktree deletion
   post_remove:
@@ -192,6 +193,15 @@ hooks:
 ```
 
 You can also add custom environment variables in the `env` field (and even override gw's environment variables).
+
+#### Working Directory
+
+Each hook runs in a working directory that matches its point in the worktree lifecycle:
+
+- **post_add / pre_remove**: run inside the target worktree (`$GW_WORKTREE_PATH`), since it exists at that point. For example, `post_add: cp .env.example .env` copies the file into the new worktree.
+- **pre_add / post_remove**: run in the main repository root (`$GW_REPO_ROOT`), because the worktree does not exist yet (`pre_add`) or has already been removed (`post_remove`).
+
+Because absolute paths (`$GW_WORKTREE_PATH`, `$GW_REPO_ROOT`) are always available, you can operate on either location from any hook regardless of the working directory.
 
 #### Hook Execution Order and Error Handling
 
