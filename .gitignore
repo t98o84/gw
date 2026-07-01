@@ -1,5 +1,5 @@
 # Binaries
-gw
+/gw
 *.exe
 
 # Test coverage

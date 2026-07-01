@@ -1,0 +1,13 @@
+{
+  "name": "gw",
+  "owner": {
+    "name": "t98o84"
+  },
+  "plugins": [
+    {
+      "name": "gw",
+      "source": "./",
+      "description": "Agent skill that teaches AI agents to drive the gw git-worktree CLI."
+    }
+  ]
+}
