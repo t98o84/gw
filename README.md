@@ -467,6 +467,59 @@ gw close -f -b
 | `gw fd -p` | `gw f -p` | Search worktrees with fzf (output full path) |
 | `gw init <shell>` | `gw i` | Output shell initialization script |
 
+## AI Agent Skill
+
+This repository ships an [Agent Skill](https://agentskills.io) at
+[`skills/gw/SKILL.md`](skills/gw/SKILL.md) that teaches AI coding agents how to drive
+`gw` correctly (commands, naming convention, hooks, config precedence, and known
+pitfalls) instead of calling `git worktree` directly.
+
+The skill is **tool-agnostic** — it follows the Agent Skills open standard, so it works
+across Claude Code, GitHub Copilot, Cursor, Codex, Gemini CLI, and other skills-compatible
+agents.
+
+### Install for Claude Code
+
+**Option A — plugin marketplace:**
+
+```shell
+/plugin marketplace add t98o84/gw
+/plugin install gw@gw
+```
+
+**Option B — copy the skill (minimal):**
+
+```bash
+# Personal (all projects)
+mkdir -p ~/.claude/skills && cp -r skills/gw ~/.claude/skills/gw
+
+# Or project-local (this repo only)
+mkdir -p .claude/skills && cp -r skills/gw .claude/skills/gw
+```
+
+### Install with the GitHub CLI (`gh skill`, multi-agent)
+
+The `gh skill` GitHub CLI extension discovers `skills/*/SKILL.md` and supports many agents
+via `--agent`:
+
+```bash
+gh skill search gw
+gh skill preview t98o84/gw gw
+gh skill install t98o84/gw gw --agent claude-code   # other agents: change --agent
+```
+
+> Note: `gh skill` is in preview and its interface may change.
+
+### npm (optional)
+
+Distributing this skill via npm is not required. If you want an npm-style flow, use a
+third-party universal loader that reads the skill straight from GitHub — no npm publish on
+`gw`'s side:
+
+```bash
+npx openskills install github:t98o84/gw
+```
+
 ## Required Tools
 
 - `git`
