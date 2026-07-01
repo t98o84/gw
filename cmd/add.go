@@ -43,7 +43,11 @@ Hooks:
     - GW_WORKTREE_PATH: Path to the worktree
     - GW_BRANCH: Branch name
     - GW_REPO_ROOT: Repository root path
-  
+
+  Working directory:
+    - pre_add runs in the repository root (worktree not created yet)
+    - post_add runs inside the new worktree (GW_WORKTREE_PATH)
+
   Example gw.yaml:
     hooks:
       pre_add:
@@ -51,7 +55,7 @@ Hooks:
           command: echo "Creating worktree for $GW_BRANCH"
       post_add:
         - name: "Install dependencies"
-          command: cd "$GW_WORKTREE_PATH" && npm install
+          command: npm install
 
 Examples:
   gw add feature/hoge

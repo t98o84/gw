@@ -40,8 +40,15 @@ func ExecuteHooks(projectConfig *ProjectConfig, hookType HookType, worktreePath,
 		return nil
 	}
 
+	// Determine the working directory for the hook commands.
+	// post_add and pre_remove run inside the target worktree, since it exists
+	// at that point and is the natural place to operate on. pre_add (worktree
+	// not yet created) and post_remove (worktree already deleted) run in the
+	// main repository root.
+	workDir := hookWorkDir(hookType, worktreePath, repoRoot)
+
 	for i, hook := range hooks {
-		if err := executeHook(hook, worktreePath, branch, repoRoot, i); err != nil {
+		if err := executeHook(hook, workDir, worktreePath, branch, repoRoot, i); err != nil {
 			return fmt.Errorf("hook %d failed: %w", i+1, err)
 		}
 	}
@@ -49,11 +56,21 @@ func ExecuteHooks(projectConfig *ProjectConfig, hookType HookType, worktreePath,
 	return nil
 }
 
-func executeHook(hook Hook, worktreePath, branch, repoRoot string, index int) error {
-	return executeCommandHook(hook, worktreePath, branch, repoRoot, index)
+// hookWorkDir returns the directory in which a hook's command should run.
+func hookWorkDir(hookType HookType, worktreePath, repoRoot string) string {
+	switch hookType {
+	case HookPostAdd, HookPreRemove:
+		return worktreePath
+	default: // HookPreAdd, HookPostRemove
+		return repoRoot
+	}
 }
 
-func executeCommandHook(hook Hook, worktreePath, branch, repoRoot string, index int) error {
+func executeHook(hook Hook, workDir, worktreePath, branch, repoRoot string, index int) error {
+	return executeCommandHook(hook, workDir, worktreePath, branch, repoRoot, index)
+}
+
+func executeCommandHook(hook Hook, workDir, worktreePath, branch, repoRoot string, index int) error {
 	if hook.Command == "" {
 		return fmt.Errorf("command hook requires 'command' field")
 	}
@@ -61,7 +78,7 @@ func executeCommandHook(hook Hook, worktreePath, branch, repoRoot string, index 
 	fmt.Printf("⚙️  Hook %d: Executing command: %s\n", index+1, hook.Command)
 
 	cmd := exec.Command("sh", "-c", hook.Command)
-	cmd.Dir = repoRoot
+	cmd.Dir = workDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

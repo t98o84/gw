@@ -108,7 +108,8 @@ func TestExecuteHooks(t *testing.T) {
 			},
 			expectError: false,
 			validateFunc: func(t *testing.T, worktreePath string, repoRoot string) {
-				content, err := os.ReadFile(filepath.Join(repoRoot, "env_test.txt"))
+				// post_add hooks run inside the worktree directory.
+				content, err := os.ReadFile(filepath.Join(worktreePath, "env_test.txt"))
 				if err != nil {
 					t.Errorf("failed to read command output: %v", err)
 					return
@@ -260,6 +261,59 @@ echo "Line 3" >> output.txt`,
 	}
 }
 
+func TestExecuteHooksWorkingDirectory(t *testing.T) {
+	tests := []struct {
+		name     string
+		hookType HookType
+		// wantDir selects which of the two directories the hook is expected to
+		// run in: "worktree" or "repo".
+		wantDir string
+	}{
+		{name: "post_add runs in worktree", hookType: HookPostAdd, wantDir: "worktree"},
+		{name: "pre_remove runs in worktree", hookType: HookPreRemove, wantDir: "worktree"},
+		{name: "pre_add runs in repo root", hookType: HookPreAdd, wantDir: "repo"},
+		{name: "post_remove runs in repo root", hookType: HookPostRemove, wantDir: "repo"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			worktreePath := t.TempDir()
+			repoRoot := t.TempDir()
+
+			// The hook writes a marker file into its current working directory.
+			hook := Hook{Command: "pwd > marker.txt"}
+			cfg := &ProjectConfig{}
+			switch tt.hookType {
+			case HookPreAdd:
+				cfg.Hooks.PreAdd = []Hook{hook}
+			case HookPostAdd:
+				cfg.Hooks.PostAdd = []Hook{hook}
+			case HookPreRemove:
+				cfg.Hooks.PreRemove = []Hook{hook}
+			case HookPostRemove:
+				cfg.Hooks.PostRemove = []Hook{hook}
+			}
+
+			if err := ExecuteHooks(cfg, tt.hookType, worktreePath, "feature/test", repoRoot); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			wantDir := repoRoot
+			otherDir := worktreePath
+			if tt.wantDir == "worktree" {
+				wantDir, otherDir = worktreePath, repoRoot
+			}
+
+			if _, err := os.Stat(filepath.Join(wantDir, "marker.txt")); err != nil {
+				t.Errorf("expected marker.txt in %s (%s), but it was not created: %v", tt.wantDir, wantDir, err)
+			}
+			if _, err := os.Stat(filepath.Join(otherDir, "marker.txt")); err == nil {
+				t.Errorf("marker.txt was unexpectedly created in the other directory: %s", otherDir)
+			}
+		})
+	}
+}
+
 func TestExecuteCommandHook(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -295,7 +349,7 @@ func TestExecuteCommandHook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			err := executeCommandHook(tt.hook, dir, "test-branch", dir, 0)
+			err := executeCommandHook(tt.hook, dir, dir, "test-branch", dir, 0)
 
 			if tt.expectError {
 				if err == nil {
