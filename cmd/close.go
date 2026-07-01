@@ -40,9 +40,9 @@ Examples:
 
 func init() {
 	closeCmd.Flags().BoolVar(&closeConfig.PrintPath, "print-path", false, "Print the path instead of changing directory (used by shell wrapper)")
-	closeCmd.Flags().BoolVarP(&closeConfig.Yes, "yes", "y", false, "Automatically confirm worktree deletion (used by shell wrapper)")
+	closeCmd.Flags().BoolVarP(&closeConfig.Yes, "yes", "y", false, "Force worktree removal even if dirty (forwarded to gw rm by the shell wrapper)")
 	closeCmd.Flags().BoolVar(&closeConfig.Force, "force", false, "Alias for --yes")
-	closeCmd.Flags().BoolVar(&closeConfig.NoYes, "no-yes", false, "Force disable automatic confirmation (overrides config and --yes)")
+	closeCmd.Flags().BoolVar(&closeConfig.NoYes, "no-yes", false, "Disable force removal (overrides config and --yes)")
 	closeCmd.Flags().BoolVar(&closeConfig.NoForce, "no-force", false, "Alias for --no-yes")
 	rootCmd.AddCommand(closeCmd)
 }
